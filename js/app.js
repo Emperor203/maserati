@@ -250,7 +250,7 @@ function init() {
 
   // 1. Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf6f7f9);
+  scene.background = new THREE.Color(0xf2f3f5);
   scene.fog = null;
 
   // 2. Camera
@@ -269,7 +269,7 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -299,11 +299,14 @@ function init() {
     }
   });
 
-  // 5. Automotive Softbox Studio Environment (Creates long glossy light streaks)
-  const studioEnvTex = createAutomotiveStudioEnvironment(renderer);
-  scene.environment = studioEnvTex;
+  // 5. Studio Environment via RoomEnvironment (Soft, natural automotive reflections)
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+  const roomEnv = new RoomEnvironment();
+  scene.environment = pmremGenerator.fromScene(roomEnv).texture;
+  pmremGenerator.dispose();
   if ('environmentIntensity' in scene) {
-    scene.environmentIntensity = 1.6;
+    scene.environmentIntensity = 0.95;
   }
 
   // 6. Studio Lighting
@@ -328,113 +331,35 @@ function init() {
   window.addEventListener('resize', onWindowResize);
 }
 
-// --- CREATE AUTOMOTIVE STUDIO SOFTBOX ENVIRONMENT ---
-function createAutomotiveStudioEnvironment(renderer) {
-  const envScene = new THREE.Scene();
-  // Neutral dark studio background so emissive softbox light banks produce sharp specular contrast
-  envScene.background = new THREE.Color(0x111317);
-
-  // Soft gradient studio floor in reflection scene
-  const envFloor = new THREE.Mesh(
-    new THREE.PlaneGeometry(60, 60),
-    new THREE.MeshBasicMaterial({ color: 0x48505e })
-  );
-  envFloor.rotation.x = -Math.PI / 2;
-  envFloor.position.y = -0.5;
-  envScene.add(envFloor);
-
-  // High-luminance softbox materials (toneMapped: false for true HDR reflections into PMREM)
-  const mainSoftboxMat = new THREE.MeshBasicMaterial({ 
-    color: new THREE.Color(12.0, 12.0, 12.0),
-    toneMapped: false 
-  });
-  const sideSoftboxMat = new THREE.MeshBasicMaterial({ 
-    color: new THREE.Color(7.5, 7.5, 7.5),
-    toneMapped: false 
-  });
-  const accentSoftboxMat = new THREE.MeshBasicMaterial({ 
-    color: new THREE.Color(5.0, 5.0, 5.0),
-    toneMapped: false 
-  });
-
-  // 1. Long Central Overhead Softbox Strip (Down hood, roof, rear deck)
-  const topStrip = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 24), mainSoftboxMat);
-  topStrip.rotation.x = Math.PI / 2;
-  topStrip.position.set(0, 6.0, 0);
-  envScene.add(topStrip);
-
-  // 2. Twin Parallel Shoulder Strips (Draws beautiful dual shoulder highlights)
-  const topStripLeft = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 22), sideSoftboxMat);
-  topStripLeft.rotation.x = Math.PI / 2;
-  topStripLeft.position.set(-2.2, 5.4, 0);
-  envScene.add(topStripLeft);
-
-  const topStripRight = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 22), sideSoftboxMat);
-  topStripRight.rotation.x = Math.PI / 2;
-  topStripRight.position.set(2.2, 5.4, 0);
-  envScene.add(topStripRight);
-
-  // 3. Front 45-degree Hood & Windshield Sweeper
-  const frontBox = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 4.0), mainSoftboxMat);
-  frontBox.position.set(0, 3.8, 6.5);
-  frontBox.rotation.x = Math.PI / 3.5;
-  frontBox.rotation.y = Math.PI;
-  envScene.add(frontBox);
-
-  // 4. Rear Coda Tronca Softbox
-  const rearBox = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 3.5), accentSoftboxMat);
-  rearBox.position.set(0, 3.5, -6.5);
-  rearBox.rotation.x = -Math.PI / 3.5;
-  envScene.add(rearBox);
-
-  // 5. Left & Right Flank Softbox Panels (Horizontal reflection along waistline)
-  const leftFlank = new THREE.Mesh(new THREE.PlaneGeometry(20, 2.8), sideSoftboxMat);
-  leftFlank.position.set(-5.5, 2.2, 0);
-  leftFlank.rotation.y = Math.PI / 2;
-  envScene.add(leftFlank);
-
-  const rightFlank = new THREE.Mesh(new THREE.PlaneGeometry(20, 2.8), sideSoftboxMat);
-  rightFlank.position.set(5.5, 2.2, 0);
-  rightFlank.rotation.y = -Math.PI / 2;
-  envScene.add(rightFlank);
-
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  pmremGenerator.compileEquirectangularShader();
-  const envTex = pmremGenerator.fromScene(envScene).texture;
-  pmremGenerator.dispose();
-
-  return envTex;
-}
-
 // --- SETUP LIGHTING RIGS ---
 function setupLighting() {
-  ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
+  ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
   scene.add(ambientLight);
 
-  // Main Key Sun Light / Studio Overhead Softbox
-  dirLight = new THREE.DirectionalLight(0xffffff, 2.8);
-  dirLight.position.set(4, 9, 4);
+  // Soft Key Light from top-front
+  dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
+  dirLight.position.set(3.5, 7.5, 3.5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
   dirLight.shadow.mapSize.height = 2048;
   dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far = 25;
-  dirLight.shadow.camera.left = -4.0;
-  dirLight.shadow.camera.right = 4.0;
-  dirLight.shadow.camera.top = 4.0;
-  dirLight.shadow.camera.bottom = -4.0;
-  dirLight.shadow.bias = -0.00005;
-  dirLight.shadow.normalBias = 0.035; // Eliminates shadow acne stripes!
+  dirLight.shadow.camera.far = 20;
+  dirLight.shadow.camera.left = -3.5;
+  dirLight.shadow.camera.right = 3.5;
+  dirLight.shadow.camera.top = 3.5;
+  dirLight.shadow.camera.bottom = -3.5;
+  dirLight.shadow.bias = -0.0001;
+  dirLight.shadow.normalBias = 0.02;
   scene.add(dirLight);
 
   // Left Softbox Fill Light
-  rimLightL = new THREE.DirectionalLight(0xffffff, 1.6);
-  rimLightL.position.set(-6, 7, -3);
+  rimLightL = new THREE.DirectionalLight(0xffffff, 0.85);
+  rimLightL.position.set(-6, 6, -3);
   scene.add(rimLightL);
 
   // Front Key Softbox Light
-  rimLightR = new THREE.DirectionalLight(0xffffff, 1.2);
-  rimLightR.position.set(0, 4, 8);
+  rimLightR = new THREE.DirectionalLight(0xffffff, 0.75);
+  rimLightR.position.set(0, 3.5, 6.5);
   scene.add(rimLightR);
 
   // Headlight Spotlights (Forward pools of light on the road/podium)
@@ -464,19 +389,19 @@ function setupLighting() {
   taillightGlow.push(tailGlowL, tailGlowR);
 }
 
-let groundMat;
+let shadowPlaneMat;
 // --- SETUP GROUND & CONTACT SHADOW ---
 function setupGround() {
-  // Infinite Seamless Studio Floor (No Podium - Car sits directly on showroom floor)
+  // Seamless Studio Floor Shadow Receiver (100% transparent, catches real shadows without ANY edge or horizon line)
   const groundGeo = new THREE.PlaneGeometry(120, 120);
-  groundMat = new THREE.MeshStandardMaterial({
-    color: 0xf6f7f9,
-    roughness: 0.38,
-    metalness: 0.04
+  shadowPlaneMat = new THREE.ShadowMaterial({
+    opacity: 0.16,
+    transparent: true,
+    depthWrite: false
   });
-  groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh = new THREE.Mesh(groundGeo, shadowPlaneMat);
   groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.position.y = 0.0;
+  groundMesh.position.y = 0.001;
   groundMesh.receiveShadow = true;
   scene.add(groundMesh);
 
@@ -487,11 +412,11 @@ function setupGround() {
   const ctx = shadowCanvas.getContext('2d');
 
   // Multi-tier realistic contact occlusion
-  const radGrad = ctx.createRadialGradient(512, 512, 50, 512, 512, 480);
-  radGrad.addColorStop(0, 'rgba(15, 18, 24, 0.82)');
-  radGrad.addColorStop(0.28, 'rgba(25, 30, 40, 0.55)');
-  radGrad.addColorStop(0.62, 'rgba(45, 52, 65, 0.18)');
-  radGrad.addColorStop(0.88, 'rgba(65, 75, 90, 0.04)');
+  const radGrad = ctx.createRadialGradient(512, 512, 40, 512, 512, 480);
+  radGrad.addColorStop(0, 'rgba(10, 12, 16, 0.88)');
+  radGrad.addColorStop(0.25, 'rgba(18, 22, 28, 0.58)');
+  radGrad.addColorStop(0.55, 'rgba(30, 36, 46, 0.22)');
+  radGrad.addColorStop(0.82, 'rgba(50, 60, 72, 0.05)');
   radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
   ctx.fillStyle = radGrad;
   ctx.fillRect(0, 0, 1024, 1024);
@@ -501,7 +426,7 @@ function setupGround() {
   const contactMat = new THREE.MeshBasicMaterial({
     map: shadowTex,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.78,
     depthWrite: false
   });
   contactShadowMesh = new THREE.Mesh(contactGeo, contactMat);
@@ -706,20 +631,20 @@ function loadMaseratiModel() {
             // Body paint materials
             if (matName.includes('body') || nodeName.includes('body') || nodeName.includes('bonnet') || nodeName.includes('booth')) {
               if (!sharedBodyMat) {
-                // Convert to authentic 2-layer automotive lacquer (MeshPhysicalMaterial with mirror clearcoat)
+                // Authentic 2-layer automotive lacquer (MeshPhysicalMaterial) matching reference photo
                 sharedBodyMat = new THREE.MeshPhysicalMaterial({
                   map: mat.map,
                   normalMap: mat.normalMap,
                   aoMap: mat.aoMap,
                   aoMapIntensity: 1.0,
                   color: new THREE.Color(0xffffff), // Authentic Rosso Corsa
-                  roughness: 0.04,
-                  metalness: 0.03,
-                  clearcoat: 1.0,
-                  clearcoatRoughness: 0.02,
-                  ior: 1.52,
-                  reflectivity: 0.95,
-                  envMapIntensity: 2.4,
+                  roughness: 0.20,
+                  metalness: 0.06,
+                  clearcoat: 0.85,
+                  clearcoatRoughness: 0.12,
+                  ior: 1.5,
+                  reflectivity: 0.5,
+                  envMapIntensity: 0.95,
                 });
                 bodyMaterials.push(sharedBodyMat);
               }
@@ -730,9 +655,9 @@ function loadMaseratiModel() {
             if (matName.includes('chrome') || matName.includes('old_chrome') || matName.includes('metal')) {
               if (!chromeMaterials.includes(mat)) {
                 chromeMaterials.push(mat);
-                mat.metalness = 0.98;
-                mat.roughness = 0.02;
-                mat.envMapIntensity = 2.6;
+                mat.metalness = 0.92;
+                mat.roughness = 0.10;
+                mat.envMapIntensity = 1.2;
               }
             }
 
@@ -742,9 +667,9 @@ function loadMaseratiModel() {
                 glassMaterials.push(mat);
                 mat.transparent = true;
                 mat.opacity = 0.35;
-                mat.roughness = 0.02;
+                mat.roughness = 0.08;
                 mat.metalness = 0.05;
-                mat.envMapIntensity = 2.0;
+                mat.envMapIntensity = 1.0;
                 mat.depthWrite = false;
               }
             }
@@ -753,8 +678,8 @@ function loadMaseratiModel() {
             if (matName.includes('headlight_glass')) {
               mat.transparent = true;
               mat.opacity = 0.60;
-              mat.roughness = 0.05;
-              mat.metalness = 0.1;
+              mat.roughness = 0.10;
+              mat.metalness = 0.05;
               mat.depthWrite = false;
             }
 
@@ -769,9 +694,9 @@ function loadMaseratiModel() {
             if (matName.includes('reflector')) {
               if (!reflectorMaterials.includes(mat)) {
                 reflectorMaterials.push(mat);
-                mat.metalness = 0.98;
-                mat.roughness = 0.05;
-                mat.envMapIntensity = 2.4;
+                mat.metalness = 0.95;
+                mat.roughness = 0.08;
+                mat.envMapIntensity = 1.3;
               }
             }
 
@@ -796,14 +721,14 @@ function loadMaseratiModel() {
 
             // Rims & Spoke wire wheels
             if (matName.includes('rim')) {
-              mat.metalness = 0.96;
-              mat.roughness = 0.04;
-              mat.envMapIntensity = 2.4;
+              mat.metalness = 0.88;
+              mat.roughness = 0.18;
+              mat.envMapIntensity = 1.1;
             }
 
             // Rubber tires
             if (matName.includes('tyre') || matName.includes('tire')) {
-              mat.roughness = 0.85;
+              mat.roughness = 0.82;
               mat.metalness = 0.02;
             }
           }
@@ -951,23 +876,26 @@ function setPaintFinish(finish) {
   state.currentFinish = finish;
   bodyMaterials.forEach((mat) => {
     if (finish === 'gloss') {
-      mat.roughness = 0.04;
-      mat.metalness = 0.03;
-      mat.clearcoat = 1.0;
-      mat.clearcoatRoughness = 0.02;
-      mat.ior = 1.52;
-    } else if (finish === 'satin') {
-      mat.roughness = 0.45;
-      mat.metalness = 0.15;
-      mat.clearcoat = 0.25;
-      mat.clearcoatRoughness = 0.30;
-      mat.ior = 1.45;
+      mat.roughness = 0.20;
+      mat.metalness = 0.06;
+      mat.clearcoat = 0.85;
+      mat.clearcoatRoughness = 0.12;
+      mat.ior = 1.5;
+      mat.envMapIntensity = 0.95;
     } else if (finish === 'metallic') {
-      mat.roughness = 0.07;
+      mat.roughness = 0.24;
       mat.metalness = 0.65;
-      mat.clearcoat = 1.0;
-      mat.clearcoatRoughness = 0.03;
-      mat.ior = 1.52;
+      mat.clearcoat = 0.85;
+      mat.clearcoatRoughness = 0.15;
+      mat.ior = 1.5;
+      mat.envMapIntensity = 1.0;
+    } else if (finish === 'satin') {
+      mat.roughness = 0.48;
+      mat.metalness = 0.15;
+      mat.clearcoat = 0.20;
+      mat.clearcoatRoughness = 0.40;
+      mat.ior = 1.45;
+      mat.envMapIntensity = 0.6;
     }
     mat.needsUpdate = true;
   });
@@ -987,33 +915,37 @@ function setBgTheme(theme) {
   state.currentBgTheme = theme;
   const isWhite = (theme === 'white');
 
+  const canvasContainer = document.getElementById('webgl-container');
+
   if (isWhite) {
-    scene.background.set(0xf6f7f9);
-    if (groundMat) {
-      groundMat.color.set(0xf6f7f9);
-      groundMat.roughness = 0.38;
-      groundMat.metalness = 0.04;
+    scene.background.set(0xf2f3f5);
+    if (canvasContainer) canvasContainer.style.background = '#f2f3f5';
+    if (shadowPlaneMat) {
+      shadowPlaneMat.opacity = 0.16;
     }
     if (contactShadowMesh) {
-      contactShadowMesh.material.opacity = 0.85;
+      contactShadowMesh.material.opacity = 0.78;
     }
-    ambientLight.intensity = 1.25;
-    dirLight.intensity = 2.8;
+    ambientLight.intensity = 1.35;
+    dirLight.intensity = 1.6;
     dirLight.color.set(0xffffff);
+    rimLightL.intensity = 0.85;
+    rimLightR.intensity = 0.75;
     document.body.classList.remove('dark-studio');
   } else {
     scene.background.set(0x0a0c10);
-    if (groundMat) {
-      groundMat.color.set(0x0a0c10);
-      groundMat.roughness = 0.20;
-      groundMat.metalness = 0.15;
+    if (canvasContainer) canvasContainer.style.background = '#0a0c10';
+    if (shadowPlaneMat) {
+      shadowPlaneMat.opacity = 0.45;
     }
     if (contactShadowMesh) {
-      contactShadowMesh.material.opacity = 0.95;
+      contactShadowMesh.material.opacity = 0.90;
     }
-    ambientLight.intensity = 0.85;
-    dirLight.intensity = 2.6;
+    ambientLight.intensity = 0.80;
+    dirLight.intensity = 1.6;
     dirLight.color.set(0xfffbf5);
+    rimLightL.intensity = 0.9;
+    rimLightR.intensity = 0.8;
     document.body.classList.add('dark-studio');
   }
 
@@ -1067,14 +999,12 @@ function setEnvironmentMode(mode) {
   } else if (mode === 'sunset') {
     state.currentBgTheme = 'sunset';
     scene.background.set(0x1a0f0d);
-    if (groundMat) {
-      groundMat.color.set(0x1a0f0d);
-      groundMat.roughness = 0.30;
-      groundMat.metalness = 0.08;
-    }
+    const canvasContainer = document.getElementById('webgl-container');
+    if (canvasContainer) canvasContainer.style.background = '#1a0f0d';
+    if (shadowPlaneMat) shadowPlaneMat.opacity = 0.35;
     if (contactShadowMesh) contactShadowMesh.material.opacity = 0.90;
     dirLight.color.set(0xff9944);
-    dirLight.intensity = 2.8;
+    dirLight.intensity = 2.0;
     rimLightL.color.set(0xaa4466);
     rimLightR.color.set(0xffcc66);
     ambientLight.intensity = 0.65;
@@ -1083,14 +1013,12 @@ function setEnvironmentMode(mode) {
   } else if (mode === 'cyber') {
     state.currentBgTheme = 'cyber';
     scene.background.set(0x05060f);
-    if (groundMat) {
-      groundMat.color.set(0x05060f);
-      groundMat.roughness = 0.15;
-      groundMat.metalness = 0.20;
-    }
+    const canvasContainer = document.getElementById('webgl-container');
+    if (canvasContainer) canvasContainer.style.background = '#05060f';
+    if (shadowPlaneMat) shadowPlaneMat.opacity = 0.40;
     if (contactShadowMesh) contactShadowMesh.material.opacity = 0.95;
     dirLight.color.set(0x00f0ff);
-    dirLight.intensity = 2.4;
+    dirLight.intensity = 1.8;
     rimLightL.color.set(0xff0066);
     rimLightR.color.set(0x00e5ff);
     ambientLight.intensity = 0.45;
