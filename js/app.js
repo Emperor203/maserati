@@ -866,7 +866,10 @@ function setPaintColor(hex, name) {
   });
 
   const label = document.getElementById('paint-name-label');
-  if (label) label.textContent = name;
+  if (label) {
+    label.textContent = name;
+    label.style.color = hex;
+  }
   showToast(`${i18n[currentLang].toastPaint}${name}`);
 }
 

@@ -368,8 +368,9 @@ html, body {
 
 /* Paint Color Swatches */
 .paint-swatches {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
 }
 
