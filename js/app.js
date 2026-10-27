@@ -317,7 +317,7 @@ function init() {
   scene.environment = pmremGenerator.fromScene(roomEnv).texture;
   pmremGenerator.dispose();
   if ('environmentIntensity' in scene) {
-    scene.environmentIntensity = 1.1;
+    scene.environmentIntensity = 0.75;
   }
 
   // 6. Studio Lighting
@@ -346,11 +346,11 @@ function init() {
 function setupLighting() {
   const isDark = (state.currentBgTheme === 'black');
 
-  ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.35 : 1.25);
+  ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.15 : 1.05);
   scene.add(ambientLight);
 
   // Key Light from top-front
-  dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 2.2 : 1.7);
+  dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 1.85 : 1.5);
   dirLight.position.set(3.5, 7.5, 3.5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -366,12 +366,12 @@ function setupLighting() {
   scene.add(dirLight);
 
   // Left Softbox Fill Light
-  rimLightL = new THREE.DirectionalLight(0xffffff, isDark ? 1.4 : 0.85);
+  rimLightL = new THREE.DirectionalLight(0xffffff, isDark ? 1.0 : 0.75);
   rimLightL.position.set(-6, 6, -3);
   scene.add(rimLightL);
 
   // Front Key Softbox Light
-  rimLightR = new THREE.DirectionalLight(0xffffff, isDark ? 1.2 : 0.75);
+  rimLightR = new THREE.DirectionalLight(0xffffff, isDark ? 0.85 : 0.65);
   rimLightR.position.set(0, 3.5, 6.5);
   scene.add(rimLightR);
 
@@ -646,18 +646,18 @@ function loadMaseratiModel() {
             // Body paint materials
             if (matName.includes('body') || nodeName.includes('body') || nodeName.includes('bonnet') || nodeName.includes('booth')) {
               if (!sharedBodyMat) {
-                // Vibrant, glossy Rosso Corsa lacquer (bright red, high gloss, no double-AO darkening)
+                // Vibrant, glossy Rosso Corsa lacquer: rich red, crisp glints, no milky white wash
                 sharedBodyMat = new THREE.MeshPhysicalMaterial({
                   map: mat.map,
                   normalMap: mat.normalMap,
                   color: new THREE.Color(0xffffff), // Authentic Rosso Corsa
-                  roughness: 0.16,
-                  metalness: 0.05,
-                  clearcoat: 0.95,
-                  clearcoatRoughness: 0.06,
-                  ior: 1.5,
-                  reflectivity: 0.6,
-                  envMapIntensity: 1.25,
+                  roughness: 0.28,
+                  metalness: 0.02,
+                  clearcoat: 0.75,
+                  clearcoatRoughness: 0.035,
+                  ior: 1.45,
+                  reflectivity: 0.5,
+                  envMapIntensity: 0.65,
                 });
                 bodyMaterials.push(sharedBodyMat);
               }
@@ -755,6 +755,13 @@ function loadMaseratiModel() {
           doorNodes.right.push(node);
         }
       });
+
+      // Internal nose baffle: prevents see-through front air vents/ducts showing white floor or background
+      const noseBaffleGeo = new THREE.PlaneGeometry(1.4, 0.4);
+      const noseBaffleMat = new THREE.MeshBasicMaterial({ color: 0x05070a, side: THREE.DoubleSide });
+      const noseBaffle = new THREE.Mesh(noseBaffleGeo, noseBaffleMat);
+      noseBaffle.position.set(0, 0.38, 1.68);
+      carModel.add(noseBaffle);
 
       scene.add(carModel);
 
@@ -889,26 +896,26 @@ function setPaintFinish(finish) {
   state.currentFinish = finish;
   bodyMaterials.forEach((mat) => {
     if (finish === 'gloss') {
-      mat.roughness = 0.16;
-      mat.metalness = 0.05;
-      mat.clearcoat = 0.95;
-      mat.clearcoatRoughness = 0.06;
-      mat.ior = 1.5;
-      mat.envMapIntensity = 1.25;
-    } else if (finish === 'metallic') {
-      mat.roughness = 0.22;
-      mat.metalness = 0.68;
-      mat.clearcoat = 0.90;
-      mat.clearcoatRoughness = 0.10;
-      mat.ior = 1.5;
-      mat.envMapIntensity = 1.25;
-    } else if (finish === 'satin') {
-      mat.roughness = 0.46;
-      mat.metalness = 0.15;
-      mat.clearcoat = 0.20;
-      mat.clearcoatRoughness = 0.35;
+      mat.roughness = 0.28;
+      mat.metalness = 0.02;
+      mat.clearcoat = 0.75;
+      mat.clearcoatRoughness = 0.035;
       mat.ior = 1.45;
-      mat.envMapIntensity = 0.7;
+      mat.envMapIntensity = 0.65;
+    } else if (finish === 'metallic') {
+      mat.roughness = 0.25;
+      mat.metalness = 0.60;
+      mat.clearcoat = 0.75;
+      mat.clearcoatRoughness = 0.05;
+      mat.ior = 1.45;
+      mat.envMapIntensity = 0.70;
+    } else if (finish === 'satin') {
+      mat.roughness = 0.50;
+      mat.metalness = 0.10;
+      mat.clearcoat = 0.15;
+      mat.clearcoatRoughness = 0.30;
+      mat.ior = 1.45;
+      mat.envMapIntensity = 0.45;
     }
     mat.needsUpdate = true;
   });
@@ -943,12 +950,12 @@ function setBgTheme(theme) {
     if (contactShadowMesh) {
       contactShadowMesh.material.opacity = 0.75;
     }
-    ambientLight.intensity = 1.25;
-    dirLight.intensity = 1.7;
+    ambientLight.intensity = 1.05;
+    dirLight.intensity = 1.5;
     dirLight.color.set(0xffffff);
-    rimLightL.intensity = 0.85;
-    rimLightR.intensity = 0.75;
-    if (renderer) renderer.toneMappingExposure = 1.05;
+    rimLightL.intensity = 0.75;
+    rimLightR.intensity = 0.65;
+    if (renderer) renderer.toneMappingExposure = 1.0;
     document.body.classList.remove('dark-studio');
   } else {
     scene.background.set(0x0a0c10);
@@ -959,12 +966,12 @@ function setBgTheme(theme) {
     if (contactShadowMesh) {
       contactShadowMesh.material.opacity = 0.88;
     }
-    ambientLight.intensity = 1.35;
-    dirLight.intensity = 2.2;
+    ambientLight.intensity = 1.15;
+    dirLight.intensity = 1.85;
     dirLight.color.set(0xffffff);
-    rimLightL.intensity = 1.4;
-    rimLightR.intensity = 1.2;
-    if (renderer) renderer.toneMappingExposure = 1.15;
+    rimLightL.intensity = 1.0;
+    rimLightR.intensity = 0.85;
+    if (renderer) renderer.toneMappingExposure = 1.10;
     document.body.classList.add('dark-studio');
   }
 
