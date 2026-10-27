@@ -435,8 +435,9 @@ function setupPodium() {
   const podTex = createPodiumTexture();
   const topMat = new THREE.MeshStandardMaterial({
     map: podTex,
-    roughness: 0.32,
-    metalness: 0.3
+    color: new THREE.Color(0x06070a), // Deep dark showroom base, eliminates washed-out gray!
+    roughness: 0.72, // Crisp reflection without diffuse gray haze
+    metalness: 0.12
   });
   const topMesh = new THREE.Mesh(topGeo, topMat);
   topMesh.position.y = -height / 2;
@@ -455,57 +456,39 @@ function createPodiumTexture() {
   const ctx = canvas.getContext('2d');
   const cx = 1024, cy = 1024;
 
-  // Dark obsidian base
-  ctx.fillStyle = '#0c0f14';
+  // Ultra-deep dark obsidian base
+  ctx.fillStyle = '#040507';
   ctx.fillRect(0, 0, 2048, 2048);
 
-  // Subtle radial gradient
+  // Deep luxury gradient
   const radGrad = ctx.createRadialGradient(cx, cy, 100, cx, cy, 1000);
-  radGrad.addColorStop(0, '#11151c');
-  radGrad.addColorStop(0.75, '#0b0d12');
-  radGrad.addColorStop(1, '#07080b');
+  radGrad.addColorStop(0, '#090b10');
+  radGrad.addColorStop(0.7, '#050608');
+  radGrad.addColorStop(1, '#020304');
   ctx.fillStyle = radGrad;
   ctx.beginPath();
   ctx.arc(cx, cy, 1000, 0, Math.PI * 2);
   ctx.fill();
 
-  // Outer turntable groove ring
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = '#222834';
+  // Outer turntable groove ring (Maserati gold)
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(197, 160, 89, 0.45)';
   ctx.beginPath();
   ctx.arc(cx, cy, 910, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 912, 0, Math.PI * 2);
-  ctx.stroke();
-
   // Inner groove ring
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = '#222834';
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.beginPath();
   ctx.arc(cx, cy, 640, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 642, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Perimeter metallic chamfer ring
-  ctx.lineWidth = 14;
-  ctx.strokeStyle = '#2c3340';
-  ctx.beginPath();
-  ctx.arc(cx, cy, 990, 0, Math.PI * 2);
-  ctx.stroke();
-
+  // Perimeter ring
   ctx.lineWidth = 4;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.strokeStyle = 'rgba(197, 160, 89, 0.65)';
   ctx.beginPath();
-  ctx.arc(cx, cy, 994, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 995, 0, Math.PI * 2);
   ctx.stroke();
 
   const tex = new THREE.CanvasTexture(canvas);
