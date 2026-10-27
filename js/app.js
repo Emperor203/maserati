@@ -177,8 +177,8 @@ const state = {
   autoRotate: false,
   showHotspots: false, // Default: OFF for clean view
   currentColor: '#ab1313',
-  currentFinish: 'metallic',
-  currentEnv: 'monza',
+  currentFinish: 'gloss',
+  currentEnv: 'studio',
   cameraPreset: 'hero',
   engineRunning: false,
   throttlePressed: false,
@@ -241,8 +241,7 @@ function init() {
 
   // 1. Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x040507);
-  // Fog removed to eliminate gray hazy film and keep visuals crisp & bright!
+  scene.background = new THREE.Color(0xf6f7f9);
   scene.fog = null;
 
   // 2. Camera
@@ -261,7 +260,7 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.55;
+  renderer.toneMappingExposure = 1.08;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -275,9 +274,9 @@ function init() {
   controls.enableZoom = true;
   controls.enableRotate = true;
   controls.enablePan = true;
-  controls.minDistance = 1.2;
-  controls.maxDistance = 15.0;
-  controls.maxPolarAngle = Math.PI / 2 + 0.04; // Prevent going underneath floor
+  controls.minDistance = 1.8;
+  controls.maxDistance = 14.0;
+  controls.maxPolarAngle = Math.PI / 2 - 0.02; // Never clip beneath studio floor
   controls.target.copy(camTargetLook);
 
   // Stop camera transition as soon as user manually grabs or rotates
@@ -306,10 +305,7 @@ function init() {
   // 7. Ground Floor & Contact Shadow
   setupGround();
 
-  // 7b. Showroom Exhibition Podium
-  setupPodium();
-
-  // 7c. Realistic Headlight Optics & Lens Flares
+  // 7b. Realistic Headlight Optics & Lens Flares
   setupHeadlightOptics();
 
   // 8. Load 3D GLB Model
@@ -327,33 +323,33 @@ function init() {
 
 // --- SETUP LIGHTING RIGS ---
 function setupLighting() {
-  ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+  ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
   scene.add(ambientLight);
 
-  // Main Key Sun Light
-  dirLight = new THREE.DirectionalLight(0xfff8ee, 3.2);
-  dirLight.position.set(5, 8, 5);
+  // Main Key Sun Light / Studio Overhead Softbox
+  dirLight = new THREE.DirectionalLight(0xffffff, 2.8);
+  dirLight.position.set(4, 9, 4);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
   dirLight.shadow.mapSize.height = 2048;
   dirLight.shadow.camera.near = 0.5;
   dirLight.shadow.camera.far = 25;
-  dirLight.shadow.camera.left = -3.8;
-  dirLight.shadow.camera.right = 3.8;
-  dirLight.shadow.camera.top = 3.8;
-  dirLight.shadow.camera.bottom = -3.8;
+  dirLight.shadow.camera.left = -4.0;
+  dirLight.shadow.camera.right = 4.0;
+  dirLight.shadow.camera.top = 4.0;
+  dirLight.shadow.camera.bottom = -4.0;
   dirLight.shadow.bias = -0.00005;
   dirLight.shadow.normalBias = 0.035; // Eliminates shadow acne stripes!
   scene.add(dirLight);
 
-  // Left Rim Light
-  rimLightL = new THREE.DirectionalLight(0x90b8f0, 1.8);
-  rimLightL.position.set(-6, 4, -4);
+  // Left Softbox Fill Light
+  rimLightL = new THREE.DirectionalLight(0xffffff, 1.6);
+  rimLightL.position.set(-6, 7, -3);
   scene.add(rimLightL);
 
-  // Right Rim Light
-  rimLightR = new THREE.DirectionalLight(0xffdfb8, 1.6);
-  rimLightR.position.set(6, 3, -4);
+  // Front Key Softbox Light
+  rimLightR = new THREE.DirectionalLight(0xffffff, 1.2);
+  rimLightR.position.set(0, 4, 8);
   scene.add(rimLightR);
 
   // Headlight Spotlights (Forward pools of light on the road/podium)
@@ -383,69 +379,55 @@ function setupLighting() {
   taillightGlow.push(tailGlowL, tailGlowR);
 }
 
+let groundMat;
 // --- SETUP GROUND & CONTACT SHADOW ---
 function setupGround() {
-  // Infinite Seamless Shadow Catcher Floor
-  const groundGeo = new THREE.PlaneGeometry(100, 100);
-  const groundMat = new THREE.ShadowMaterial({
-    opacity: 0.75
+  // Infinite Seamless Studio Floor (No Podium - Car sits directly on showroom floor)
+  const groundGeo = new THREE.PlaneGeometry(120, 120);
+  groundMat = new THREE.MeshStandardMaterial({
+    color: 0xf6f7f9,
+    roughness: 0.38,
+    metalness: 0.04
   });
   groundMesh = new THREE.Mesh(groundGeo, groundMat);
   groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.position.y = -0.086; // Sits right at the base of the podium
+  groundMesh.position.y = 0.0;
   groundMesh.receiveShadow = true;
   scene.add(groundMesh);
 
-  // Soft Radial Ambient Occlusion & Contact Shadow under car tires
+  // Soft Photorealistic Contact Shadow under tires & body
   const shadowCanvas = document.createElement('canvas');
-  shadowCanvas.width = 512;
-  shadowCanvas.height = 512;
+  shadowCanvas.width = 1024;
+  shadowCanvas.height = 1024;
   const ctx = shadowCanvas.getContext('2d');
-  const gradient = ctx.createRadialGradient(256, 256, 10, 256, 256, 240);
-  gradient.addColorStop(0, 'rgba(0, 0, 0, 0.96)');
-  gradient.addColorStop(0.3, 'rgba(0, 0, 0, 0.75)');
-  gradient.addColorStop(0.65, 'rgba(0, 0, 0, 0.22)');
-  gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 512, 512);
+
+  // Multi-tier realistic contact occlusion
+  const radGrad = ctx.createRadialGradient(512, 512, 50, 512, 512, 480);
+  radGrad.addColorStop(0, 'rgba(15, 18, 24, 0.82)');
+  radGrad.addColorStop(0.28, 'rgba(25, 30, 40, 0.55)');
+  radGrad.addColorStop(0.62, 'rgba(45, 52, 65, 0.18)');
+  radGrad.addColorStop(0.88, 'rgba(65, 75, 90, 0.04)');
+  radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = radGrad;
+  ctx.fillRect(0, 0, 1024, 1024);
 
   const shadowTex = new THREE.CanvasTexture(shadowCanvas);
   const contactGeo = new THREE.PlaneGeometry(3.6, 6.2);
   const contactMat = new THREE.MeshBasicMaterial({
     map: shadowTex,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.85,
     depthWrite: false
   });
   contactShadowMesh = new THREE.Mesh(contactGeo, contactMat);
   contactShadowMesh.rotation.x = -Math.PI / 2;
-  contactShadowMesh.position.y = 0.002; // Sits on top of the podium
+  contactShadowMesh.position.y = 0.002;
   scene.add(contactShadowMesh);
 }
 
-// --- SETUP SHOWROOM EXHIBITION TURNTABLE PODIUM ---
+// Podium removed per user request (pure studio look)
 function setupPodium() {
-  podiumGroup = new THREE.Group();
-
-  const radius = 3.8;
-  const height = 0.085; // 8.5cm raised luxury stage
-
-  // Single Solid Seamless Cylinder with Procedural 2K Texture
-  const topGeo = new THREE.CylinderGeometry(radius, radius, height, 96);
-  const podTex = createPodiumTexture();
-  const topMat = new THREE.MeshStandardMaterial({
-    map: podTex,
-    color: new THREE.Color(0x06070a), // Deep dark showroom base, eliminates washed-out gray!
-    roughness: 0.72, // Crisp reflection without diffuse gray haze
-    metalness: 0.12
-  });
-  const topMesh = new THREE.Mesh(topGeo, topMat);
-  topMesh.position.y = -height / 2;
-  topMesh.castShadow = false; // Prevents self-shadow acne stripes
-  topMesh.receiveShadow = true;
-  podiumGroup.add(topMesh);
-
-  scene.add(podiumGroup);
+  // No podium - clean studio floor
 }
 
 // Generate High-Res 2048x2048 Podium Top Surface Texture
@@ -651,10 +633,10 @@ function loadMaseratiModel() {
                   mat.clearcoat = 0.2;
                   mat.clearcoatRoughness = 0.4;
                 } else {
-                  mat.roughness = 0.22;
-                  mat.metalness = 0.15;
-                  mat.clearcoat = 0.95;
-                  mat.clearcoatRoughness = 0.1;
+                  mat.roughness = 0.16;
+                  mat.metalness = 0.08;
+                  mat.clearcoat = 1.0;
+                  mat.clearcoatRoughness = 0.06;
                 }
 
                 if (state.currentColor === '#ab1313') {
@@ -914,34 +896,38 @@ function setEnvironmentMode(mode) {
     b.classList.toggle('active', b.dataset.env === mode);
   });
 
-  if (mode === 'monza') {
-    scene.background.set(0x040507);
+  if (mode === 'studio') {
+    scene.background.set(0xf6f7f9);
+    if (groundMat) groundMat.color.set(0xf6f7f9);
+    dirLight.color.set(0xffffff);
+    dirLight.intensity = 2.8;
+    rimLightL.color.set(0xffffff);
+    rimLightR.color.set(0xffffff);
+    ambientLight.intensity = 1.25;
+  } else if (mode === 'monza') {
+    scene.background.set(0x06070a);
+    if (groundMat) groundMat.color.set(0x06070a);
     dirLight.color.set(0xfff8ee);
-    dirLight.intensity = 3.2;
+    dirLight.intensity = 2.6;
     rimLightL.color.set(0x90b8f0);
     rimLightR.color.set(0xffdfb8);
-    ambientLight.intensity = 0.85;
+    ambientLight.intensity = 0.55;
   } else if (mode === 'sunset') {
-    scene.background.set(0x0a0504);
+    scene.background.set(0x1a0f0d);
+    if (groundMat) groundMat.color.set(0x1a0f0d);
     dirLight.color.set(0xff9944);
-    dirLight.intensity = 3.4;
+    dirLight.intensity = 2.8;
     rimLightL.color.set(0xaa4466);
     rimLightR.color.set(0xffcc66);
-    ambientLight.intensity = 0.75;
-  } else if (mode === 'studio') {
-    scene.background.set(0x06070a);
-    dirLight.color.set(0xffffff);
-    dirLight.intensity = 3.2;
-    rimLightL.color.set(0xd0e0f0);
-    rimLightR.color.set(0xf0e0d0);
-    ambientLight.intensity = 0.95;
+    ambientLight.intensity = 0.65;
   } else if (mode === 'cyber') {
-    scene.background.set(0x030408);
+    scene.background.set(0x05060f);
+    if (groundMat) groundMat.color.set(0x05060f);
     dirLight.color.set(0x00f0ff);
-    dirLight.intensity = 2.8;
+    dirLight.intensity = 2.4;
     rimLightL.color.set(0xff0066);
     rimLightR.color.set(0x00e5ff);
-    ambientLight.intensity = 0.65;
+    ambientLight.intensity = 0.45;
   }
 }
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maserati Tipo 151/3 (1964) | 3D Interactive Showcase</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>">
-  <link rel="stylesheet" href="style.css?v=1.0.11">
+  <link rel="stylesheet" href="style.css?v=1.0.12">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -120,9 +120,9 @@
         <button class="color-swatch-btn" data-color="#803816" data-name="Rame Metallico" style="background: #803816;" title="Rame Metallico"></button>
       </div>
       <div class="finish-toggle-row">
-        <button class="finish-btn" data-finish="gloss" id="finish-gloss">Gloss</button>
+        <button class="finish-btn active" data-finish="gloss" id="finish-gloss">Gloss</button>
         <button class="finish-btn" data-finish="satin" id="finish-satin">Satin</button>
-        <button class="finish-btn active" data-finish="metallic" id="finish-metallic">Metallic</button>
+        <button class="finish-btn" data-finish="metallic" id="finish-metallic">Metallic</button>
       </div>
       <button class="close-btn" id="close-popover-paint">&times;</button>
     </div>
@@ -135,17 +135,17 @@
         <span class="i18n-lighting">ОСВЕЩЕНИЕ:</span>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button class="env-mode-btn active" data-env="monza">
+        <button class="env-mode-btn active" data-env="studio">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+          <span class="i18n-env-studio">Шоурум</span>
+        </button>
+        <button class="env-mode-btn" data-env="monza">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
           <span class="i18n-env-monza">Монца Ночь</span>
         </button>
         <button class="env-mode-btn" data-env="sunset">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/></svg>
           <span class="i18n-env-sunset">Ле-Ман Закат</span>
-        </button>
-        <button class="env-mode-btn" data-env="studio">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
-          <span class="i18n-env-studio">Шоурум</span>
         </button>
         <button class="env-mode-btn" data-env="cyber">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -337,6 +337,6 @@
   </div>
 
   <!-- Main JavaScript Application -->
-  <script type="module" src="js/app.js?v=1.0.11"></script>
+  <script type="module" src="js/app.js?v=1.0.12"></script>
 </body>
 </html>
