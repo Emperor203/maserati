@@ -186,8 +186,8 @@ const state = {
   showHotspots: false, // Default: OFF for clean view
   currentColor: '#ab1313',
   currentFinish: 'gloss',
-  currentEnv: 'white-studio',
-  currentBgTheme: 'white', // 'white' or 'black'
+  currentEnv: 'dark-studio',
+  currentBgTheme: 'black', // Default: Black Studio ("в стоке черный режим")
   cameraPreset: 'hero',
   engineRunning: false,
   throttlePressed: false,
@@ -248,9 +248,20 @@ function init() {
   const container = document.getElementById('webgl-container');
   const canvas = document.getElementById('webgl-canvas');
 
+  // Check persisted theme preference (defaults to black)
+  try {
+    const savedTheme = localStorage.getItem('maserati_theme');
+    if (savedTheme === 'white' || savedTheme === 'black') {
+      state.currentBgTheme = savedTheme;
+      state.currentEnv = (savedTheme === 'white') ? 'white-studio' : 'dark-studio';
+    }
+  } catch (e) {}
+
+  const isDarkInit = (state.currentBgTheme === 'black');
+
   // 1. Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf2f3f5);
+  scene.background = new THREE.Color(isDarkInit ? 0x0a0c10 : 0xf2f3f5);
   scene.fog = null;
 
   // 2. Camera
@@ -269,7 +280,7 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = isDarkInit ? 1.15 : 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -306,7 +317,7 @@ function init() {
   scene.environment = pmremGenerator.fromScene(roomEnv).texture;
   pmremGenerator.dispose();
   if ('environmentIntensity' in scene) {
-    scene.environmentIntensity = 0.95;
+    scene.environmentIntensity = 1.1;
   }
 
   // 6. Studio Lighting
@@ -333,11 +344,13 @@ function init() {
 
 // --- SETUP LIGHTING RIGS ---
 function setupLighting() {
-  ambientLight = new THREE.AmbientLight(0xffffff, 1.35);
+  const isDark = (state.currentBgTheme === 'black');
+
+  ambientLight = new THREE.AmbientLight(0xffffff, isDark ? 1.35 : 1.25);
   scene.add(ambientLight);
 
-  // Soft Key Light from top-front
-  dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
+  // Key Light from top-front
+  dirLight = new THREE.DirectionalLight(0xffffff, isDark ? 2.2 : 1.7);
   dirLight.position.set(3.5, 7.5, 3.5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -353,12 +366,12 @@ function setupLighting() {
   scene.add(dirLight);
 
   // Left Softbox Fill Light
-  rimLightL = new THREE.DirectionalLight(0xffffff, 0.85);
+  rimLightL = new THREE.DirectionalLight(0xffffff, isDark ? 1.4 : 0.85);
   rimLightL.position.set(-6, 6, -3);
   scene.add(rimLightL);
 
   // Front Key Softbox Light
-  rimLightR = new THREE.DirectionalLight(0xffffff, 0.75);
+  rimLightR = new THREE.DirectionalLight(0xffffff, isDark ? 1.2 : 0.75);
   rimLightR.position.set(0, 3.5, 6.5);
   scene.add(rimLightR);
 
@@ -392,10 +405,12 @@ function setupLighting() {
 let shadowPlaneMat;
 // --- SETUP GROUND & CONTACT SHADOW ---
 function setupGround() {
+  const isDark = (state.currentBgTheme === 'black');
+
   // Seamless Studio Floor Shadow Receiver (100% transparent, catches real shadows without ANY edge or horizon line)
   const groundGeo = new THREE.PlaneGeometry(120, 120);
   shadowPlaneMat = new THREE.ShadowMaterial({
-    opacity: 0.16,
+    opacity: isDark ? 0.55 : 0.16,
     transparent: true,
     depthWrite: false
   });
@@ -405,18 +420,18 @@ function setupGround() {
   groundMesh.receiveShadow = true;
   scene.add(groundMesh);
 
-  // Soft Photorealistic Contact Shadow under tires & body
+  // Soft Photorealistic Contact Shadow under tires & body (Pure black, NO white halo!)
   const shadowCanvas = document.createElement('canvas');
   shadowCanvas.width = 1024;
   shadowCanvas.height = 1024;
   const ctx = shadowCanvas.getContext('2d');
 
-  // Multi-tier realistic contact occlusion
+  // Pure black radial gradient (0, 0, 0) - removes any light/white tint
   const radGrad = ctx.createRadialGradient(512, 512, 40, 512, 512, 480);
-  radGrad.addColorStop(0, 'rgba(10, 12, 16, 0.88)');
-  radGrad.addColorStop(0.25, 'rgba(18, 22, 28, 0.58)');
-  radGrad.addColorStop(0.55, 'rgba(30, 36, 46, 0.22)');
-  radGrad.addColorStop(0.82, 'rgba(50, 60, 72, 0.05)');
+  radGrad.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+  radGrad.addColorStop(0.25, 'rgba(0, 0, 0, 0.70)');
+  radGrad.addColorStop(0.55, 'rgba(0, 0, 0, 0.28)');
+  radGrad.addColorStop(0.82, 'rgba(0, 0, 0, 0.06)');
   radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
   ctx.fillStyle = radGrad;
   ctx.fillRect(0, 0, 1024, 1024);
@@ -426,7 +441,7 @@ function setupGround() {
   const contactMat = new THREE.MeshBasicMaterial({
     map: shadowTex,
     transparent: true,
-    opacity: 0.78,
+    opacity: isDark ? 0.88 : 0.75,
     depthWrite: false
   });
   contactShadowMesh = new THREE.Mesh(contactGeo, contactMat);
@@ -631,20 +646,18 @@ function loadMaseratiModel() {
             // Body paint materials
             if (matName.includes('body') || nodeName.includes('body') || nodeName.includes('bonnet') || nodeName.includes('booth')) {
               if (!sharedBodyMat) {
-                // Authentic 2-layer automotive lacquer (MeshPhysicalMaterial) matching reference photo
+                // Vibrant, glossy Rosso Corsa lacquer (bright red, high gloss, no double-AO darkening)
                 sharedBodyMat = new THREE.MeshPhysicalMaterial({
                   map: mat.map,
                   normalMap: mat.normalMap,
-                  aoMap: mat.aoMap,
-                  aoMapIntensity: 1.0,
                   color: new THREE.Color(0xffffff), // Authentic Rosso Corsa
-                  roughness: 0.20,
-                  metalness: 0.06,
-                  clearcoat: 0.85,
-                  clearcoatRoughness: 0.12,
+                  roughness: 0.16,
+                  metalness: 0.05,
+                  clearcoat: 0.95,
+                  clearcoatRoughness: 0.06,
                   ior: 1.5,
-                  reflectivity: 0.5,
-                  envMapIntensity: 0.95,
+                  reflectivity: 0.6,
+                  envMapIntensity: 1.25,
                 });
                 bodyMaterials.push(sharedBodyMat);
               }
@@ -876,26 +889,26 @@ function setPaintFinish(finish) {
   state.currentFinish = finish;
   bodyMaterials.forEach((mat) => {
     if (finish === 'gloss') {
-      mat.roughness = 0.20;
-      mat.metalness = 0.06;
-      mat.clearcoat = 0.85;
-      mat.clearcoatRoughness = 0.12;
+      mat.roughness = 0.16;
+      mat.metalness = 0.05;
+      mat.clearcoat = 0.95;
+      mat.clearcoatRoughness = 0.06;
       mat.ior = 1.5;
-      mat.envMapIntensity = 0.95;
+      mat.envMapIntensity = 1.25;
     } else if (finish === 'metallic') {
-      mat.roughness = 0.24;
-      mat.metalness = 0.65;
-      mat.clearcoat = 0.85;
-      mat.clearcoatRoughness = 0.15;
+      mat.roughness = 0.22;
+      mat.metalness = 0.68;
+      mat.clearcoat = 0.90;
+      mat.clearcoatRoughness = 0.10;
       mat.ior = 1.5;
-      mat.envMapIntensity = 1.0;
+      mat.envMapIntensity = 1.25;
     } else if (finish === 'satin') {
-      mat.roughness = 0.48;
+      mat.roughness = 0.46;
       mat.metalness = 0.15;
       mat.clearcoat = 0.20;
-      mat.clearcoatRoughness = 0.40;
+      mat.clearcoatRoughness = 0.35;
       mat.ior = 1.45;
-      mat.envMapIntensity = 0.6;
+      mat.envMapIntensity = 0.7;
     }
     mat.needsUpdate = true;
   });
@@ -915,6 +928,10 @@ function setBgTheme(theme) {
   state.currentBgTheme = theme;
   const isWhite = (theme === 'white');
 
+  try {
+    localStorage.setItem('maserati_theme', theme);
+  } catch (e) {}
+
   const canvasContainer = document.getElementById('webgl-container');
 
   if (isWhite) {
@@ -924,28 +941,30 @@ function setBgTheme(theme) {
       shadowPlaneMat.opacity = 0.16;
     }
     if (contactShadowMesh) {
-      contactShadowMesh.material.opacity = 0.78;
+      contactShadowMesh.material.opacity = 0.75;
     }
-    ambientLight.intensity = 1.35;
-    dirLight.intensity = 1.6;
+    ambientLight.intensity = 1.25;
+    dirLight.intensity = 1.7;
     dirLight.color.set(0xffffff);
     rimLightL.intensity = 0.85;
     rimLightR.intensity = 0.75;
+    if (renderer) renderer.toneMappingExposure = 1.05;
     document.body.classList.remove('dark-studio');
   } else {
     scene.background.set(0x0a0c10);
     if (canvasContainer) canvasContainer.style.background = '#0a0c10';
     if (shadowPlaneMat) {
-      shadowPlaneMat.opacity = 0.45;
+      shadowPlaneMat.opacity = 0.55;
     }
     if (contactShadowMesh) {
-      contactShadowMesh.material.opacity = 0.90;
+      contactShadowMesh.material.opacity = 0.88;
     }
-    ambientLight.intensity = 0.80;
-    dirLight.intensity = 1.6;
-    dirLight.color.set(0xfffbf5);
-    rimLightL.intensity = 0.9;
-    rimLightR.intensity = 0.8;
+    ambientLight.intensity = 1.35;
+    dirLight.intensity = 2.2;
+    dirLight.color.set(0xffffff);
+    rimLightL.intensity = 1.4;
+    rimLightR.intensity = 1.2;
+    if (renderer) renderer.toneMappingExposure = 1.15;
     document.body.classList.add('dark-studio');
   }
 

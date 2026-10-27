@@ -63,8 +63,12 @@ html, body {
   width: 100vw;
   height: 100vh;
   z-index: 1;
-  background: #f2f3f5;
+  background: #0a0c10;
   transition: background 0.4s ease;
+}
+
+body:not(.dark-studio) #webgl-container {
+  background: #f2f3f5;
 }
 
 body.dark-studio #webgl-container {
@@ -831,11 +835,17 @@ body.dark-studio #webgl-container {
   z-index: 40;
   padding: 36px 32px;
   overflow-y: auto;
-  transition: right var(--transition-smooth);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all var(--transition-smooth);
 }
 
 .specs-drawer.active {
   right: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .drawer-close-bar {
@@ -894,7 +904,7 @@ body.dark-studio #webgl-container {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #060709;
+  background: #0a0c10;
   z-index: 100;
   display: flex;
   flex-direction: column;
