@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maserati Tipo 151/3 (1964) | 3D Interactive Showcase</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>">
-  <link rel="stylesheet" href="style.css?v=1.0.8">
+  <link rel="stylesheet" href="style.css?v=1.0.10">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -108,22 +108,21 @@
     <div class="color-popover-content">
       <div class="popover-title">
         <span class="i18n-paint">ЦВЕТ КУЗОВА:</span>
-        <span id="paint-name-label" style="color: #fff; margin-left: 6px;">Rosso Corsa</span>
+        <span id="paint-name-label" style="color: #ff3b3b; margin-left: 6px;">Rosso Corsa</span>
       </div>
       <div class="paint-swatches">
+        <button class="color-swatch-btn active" data-color="#ab1313" data-name="Rosso Corsa" style="background: #ab1313;" title="Rosso Corsa (#2 Le Mans)"></button>
         <button class="color-swatch-btn" data-color="#144a86" data-name="1964 Le Mans Blue" style="background: #144a86;" title="1964 Le Mans Blue (#1)"></button>
-        <button class="color-swatch-btn active" data-color="#ab1313" data-name="Rosso Corsa" style="background: #ab1313;" title="Rosso Corsa"></button>
         <button class="color-swatch-btn" data-color="#9ea7af" data-name="Argento Competizione" style="background: #9ea7af;" title="Argento Competizione"></button>
         <button class="color-swatch-btn" data-color="#151619" data-name="Nero Notte" style="background: #151619;" title="Nero Notte"></button>
         <button class="color-swatch-btn" data-color="#d99f18" data-name="Giallo Modena" style="background: #d99f18;" title="Giallo Modena"></button>
-        <button class="color-swatch-btn" data-color="#f0f2f6" data-name="Bianco Polare" style="background: #f0f2f6;" title="Bianco Polare"></button>
         <button class="color-swatch-btn" data-color="#0c3c26" data-name="Verde Scuderia" style="background: #0c3c26;" title="Verde Scuderia"></button>
         <button class="color-swatch-btn" data-color="#803816" data-name="Rame Metallico" style="background: #803816;" title="Rame Metallico"></button>
       </div>
       <div class="finish-toggle-row">
-        <button class="finish-btn active" data-finish="gloss" id="finish-gloss">Gloss</button>
+        <button class="finish-btn" data-finish="gloss" id="finish-gloss">Gloss</button>
         <button class="finish-btn" data-finish="satin" id="finish-satin">Satin</button>
-        <button class="finish-btn" data-finish="metallic" id="finish-metallic">Metallic</button>
+        <button class="finish-btn active" data-finish="metallic" id="finish-metallic">Metallic</button>
       </div>
       <button class="close-btn" id="close-popover-paint">&times;</button>
     </div>
@@ -338,6 +337,6 @@
   </div>
 
   <!-- Main JavaScript Application -->
-  <script type="module" src="js/app.js?v=1.0.9"></script>
+  <script type="module" src="js/app.js?v=1.0.10"></script>
 </body>
 </html>

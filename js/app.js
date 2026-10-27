@@ -176,8 +176,8 @@ const state = {
   lightsOn: false,
   autoRotate: false,
   showHotspots: false, // Default: OFF for clean view
-  currentColor: '#144a86',
-  currentFinish: 'gloss',
+  currentColor: '#ab1313',
+  currentFinish: 'metallic',
   currentEnv: 'monza',
   cameraPreset: 'hero',
   engineRunning: false,
@@ -242,7 +242,8 @@ function init() {
   // 1. Scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x040507);
-  scene.fog = new THREE.FogExp2(0x040507, 0.035);
+  // Fog removed to eliminate gray hazy film and keep visuals crisp & bright!
+  scene.fog = null;
 
   // 2. Camera
   camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -260,7 +261,7 @@ function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.55;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -295,6 +296,9 @@ function init() {
   pmremGenerator.compileEquirectangularShader();
   const roomEnv = new RoomEnvironment(renderer);
   scene.environment = pmremGenerator.fromScene(roomEnv).texture;
+  if ('environmentIntensity' in scene) {
+    scene.environmentIntensity = 1.4;
+  }
 
   // 6. Studio Lighting
   setupLighting();
@@ -323,11 +327,11 @@ function init() {
 
 // --- SETUP LIGHTING RIGS ---
 function setupLighting() {
-  ambientLight = new THREE.AmbientLight(0xffffff, 0.42);
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
   scene.add(ambientLight);
 
   // Main Key Sun Light
-  dirLight = new THREE.DirectionalLight(0xfff8ee, 2.5);
+  dirLight = new THREE.DirectionalLight(0xfff8ee, 3.2);
   dirLight.position.set(5, 8, 5);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 2048;
@@ -343,12 +347,12 @@ function setupLighting() {
   scene.add(dirLight);
 
   // Left Rim Light
-  rimLightL = new THREE.DirectionalLight(0x7da4d4, 1.4);
+  rimLightL = new THREE.DirectionalLight(0x90b8f0, 1.8);
   rimLightL.position.set(-6, 4, -4);
   scene.add(rimLightL);
 
   // Right Rim Light
-  rimLightR = new THREE.DirectionalLight(0xffd199, 1.3);
+  rimLightR = new THREE.DirectionalLight(0xffdfb8, 1.6);
   rimLightR.position.set(6, 3, -4);
   scene.add(rimLightR);
 
@@ -652,12 +656,29 @@ function loadMaseratiModel() {
             if (matName.includes('body') || nodeName.includes('body') || nodeName.includes('bonnet') || nodeName.includes('booth')) {
               if (!bodyMaterials.includes(mat)) {
                 bodyMaterials.push(mat);
-                // Enhance paint clearcoat and gloss
-                mat.clearcoat = 0.95;
-                mat.clearcoatRoughness = 0.1;
-                mat.roughness = 0.22;
-                mat.metalness = 0.15;
-                mat.color.set(state.currentColor);
+                // Enhance paint clearcoat and gloss with metallic finish by default
+                if (state.currentFinish === 'metallic') {
+                  mat.roughness = 0.28;
+                  mat.metalness = 0.78;
+                  mat.clearcoat = 0.88;
+                  mat.clearcoatRoughness = 0.15;
+                } else if (state.currentFinish === 'satin') {
+                  mat.roughness = 0.52;
+                  mat.metalness = 0.25;
+                  mat.clearcoat = 0.2;
+                  mat.clearcoatRoughness = 0.4;
+                } else {
+                  mat.roughness = 0.22;
+                  mat.metalness = 0.15;
+                  mat.clearcoat = 0.95;
+                  mat.clearcoatRoughness = 0.1;
+                }
+
+                if (state.currentColor === '#ab1313') {
+                  mat.color.set(0xffffff); // Authentic Rosso Corsa
+                } else {
+                  mat.color.set(state.currentColor);
+                }
               }
             }
 
@@ -862,13 +883,17 @@ function setLights(on) {
 function setPaintColor(hex, name) {
   state.currentColor = hex;
   bodyMaterials.forEach((mat) => {
-    mat.color.set(hex);
+    if (hex === '#ab1313' || name === 'Rosso Corsa') {
+      mat.color.set(0xffffff);
+    } else {
+      mat.color.set(hex);
+    }
   });
 
   const label = document.getElementById('paint-name-label');
   if (label) {
     label.textContent = name;
-    label.style.color = hex;
+    label.style.color = hex === '#ab1313' ? '#ff3b3b' : hex;
   }
   showToast(`${i18n[currentLang].toastPaint}${name}`);
 }
@@ -908,36 +933,32 @@ function setEnvironmentMode(mode) {
 
   if (mode === 'monza') {
     scene.background.set(0x040507);
-    scene.fog.color.set(0x040507);
     dirLight.color.set(0xfff8ee);
-    dirLight.intensity = 2.5;
-    rimLightL.color.set(0x7da4d4);
-    rimLightR.color.set(0xffd199);
-    ambientLight.intensity = 0.42;
+    dirLight.intensity = 3.2;
+    rimLightL.color.set(0x90b8f0);
+    rimLightR.color.set(0xffdfb8);
+    ambientLight.intensity = 0.85;
   } else if (mode === 'sunset') {
     scene.background.set(0x0a0504);
-    scene.fog.color.set(0x0a0504);
     dirLight.color.set(0xff9944);
-    dirLight.intensity = 2.6;
+    dirLight.intensity = 3.4;
     rimLightL.color.set(0xaa4466);
     rimLightR.color.set(0xffcc66);
-    ambientLight.intensity = 0.38;
+    ambientLight.intensity = 0.75;
   } else if (mode === 'studio') {
     scene.background.set(0x06070a);
-    scene.fog.color.set(0x06070a);
     dirLight.color.set(0xffffff);
-    dirLight.intensity = 2.5;
+    dirLight.intensity = 3.2;
     rimLightL.color.set(0xd0e0f0);
     rimLightR.color.set(0xf0e0d0);
-    ambientLight.intensity = 0.5;
+    ambientLight.intensity = 0.95;
   } else if (mode === 'cyber') {
     scene.background.set(0x030408);
-    scene.fog.color.set(0x030408);
     dirLight.color.set(0x00f0ff);
-    dirLight.intensity = 2.0;
+    dirLight.intensity = 2.8;
     rimLightL.color.set(0xff0066);
     rimLightR.color.set(0x00e5ff);
-    ambientLight.intensity = 0.32;
+    ambientLight.intensity = 0.65;
   }
 }
 
