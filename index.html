@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maserati Tipo 151/3 (1964) | 3D Interactive Showcase</title>
+  <link rel="stylesheet" href="style.css?v=1.0.8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <!-- Import map for Three.js modules -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./libs/three/three.module.js",
+        "three/addons/": "./libs/three/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loader-screen">
+    <svg class="loader-logo-svg" viewBox="0 0 100 100">
+      <path d="M50 8 L53 38 L65 22 L62 48 L76 38 L68 56 C68 68 58 74 52 76 L52 88 L60 91 L50 94 L40 91 L48 88 L48 76 C42 74 32 68 32 56 L24 38 L38 48 L35 22 L47 38 Z" />
+    </svg>
+    <div class="loader-title">MASERATI</div>
+    <div class="loader-subtitle" id="loader-sub-text">TIPO 151/3 • 1964</div>
+    <div class="progress-bar-container">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-text-row">
+      <span id="load-status-text">Загрузка 3D модели...</span>
+      <span id="load-percent-text">0%</span>
+    </div>
+  </div>
+
+  <!-- Background WebGL 3D Canvas -->
+  <div id="webgl-container">
+    <canvas id="webgl-canvas"></canvas>
+  </div>
+  <div class="vignette-overlay"></div>
+
+  <!-- Zen Mode Floating Exit Button (shown only in clean view) -->
+  <button class="zen-exit-btn" id="btn-zen-exit" title="Вернуть меню [Esc]">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span class="i18n-show-menu">Показать меню</span>
+  </button>
+
+  <!-- Interactive 3D Hotspot DOM Elements (hidden by default) -->
+  <div id="hotspots-container" style="display: none;">
+    <div class="hotspot-pin interactive" id="pin-engine" data-target="engine">
+      <div class="pin-ring"></div>
+      <div class="pin-core">1</div>
+    </div>
+    <div class="hotspot-pin interactive" id="pin-aero" data-target="aero">
+      <div class="pin-ring"></div>
+      <div class="pin-core">2</div>
+    </div>
+    <div class="hotspot-pin interactive" id="pin-cockpit" data-target="cockpit">
+      <div class="pin-ring"></div>
+      <div class="pin-core">3</div>
+    </div>
+    <div class="hotspot-pin interactive" id="pin-wheels" data-target="wheels">
+      <div class="pin-ring"></div>
+      <div class="pin-core">4</div>
+    </div>
+    <div class="hotspot-pin interactive" id="pin-exhaust" data-target="exhaust">
+      <div class="pin-ring"></div>
+      <div class="pin-core">5</div>
+    </div>
+  </div>
+
+  <!-- Hotspot Info Modal -->
+  <div class="hotspot-modal glass-panel" id="hotspot-modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-category" id="modal-cat">ИНЖЕНЕРИЯ</div>
+        <div class="modal-title" id="modal-title">Двигатель 5.0L V8</div>
+      </div>
+      <button class="close-btn" id="close-modal-btn">&times;</button>
+    </div>
+    <div class="modal-desc" id="modal-desc">
+      4.9-литровый 90° V8 с четырьмя распредвалами (DOHC), развивающий 430 л.с. при 7000 об/мин. Оснащен четырьмя сдвоенными карбюраторами Weber 46 IDCM.
+    </div>
+    <div class="modal-stats" id="modal-stats">
+      <div class="modal-stat-item">
+        <span class="stat-key" id="stat-k1">Мощность</span>
+        <span class="stat-val" id="stat-v1">430 л.с.</span>
+      </div>
+      <div class="modal-stat-item">
+        <span class="stat-key" id="stat-k2">Объем</span>
+        <span class="stat-val" id="stat-v2">4941 см³</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notification">
+    <span id="toast-text">Цвет изменен</span>
+  </div>
+
+  <!-- Color Picker Popover (Floats right above bottom dock when toggled) -->
+  <div class="popover-panel glass-panel" id="popover-paint">
+    <div class="color-popover-content">
+      <div class="popover-title">
+        <span class="i18n-paint">ЦВЕТ КУЗОВА:</span>
+        <span id="paint-name-label" style="color: #fff; margin-left: 6px;">Rosso Corsa</span>
+      </div>
+      <div class="paint-swatches">
+        <button class="color-swatch-btn" data-color="#144a86" data-name="1964 Le Mans Blue" style="background: #144a86;" title="1964 Le Mans Blue (#1)"></button>
+        <button class="color-swatch-btn active" data-color="#ab1313" data-name="Rosso Corsa" style="background: #ab1313;" title="Rosso Corsa"></button>
+        <button class="color-swatch-btn" data-color="#9ea7af" data-name="Argento Competizione" style="background: #9ea7af;" title="Argento Competizione"></button>
+        <button class="color-swatch-btn" data-color="#151619" data-name="Nero Notte" style="background: #151619;" title="Nero Notte"></button>
+        <button class="color-swatch-btn" data-color="#d99f18" data-name="Giallo Modena" style="background: #d99f18;" title="Giallo Modena"></button>
+        <button class="color-swatch-btn" data-color="#f0f2f6" data-name="Bianco Polare" style="background: #f0f2f6;" title="Bianco Polare"></button>
+        <button class="color-swatch-btn" data-color="#0c3c26" data-name="Verde Scuderia" style="background: #0c3c26;" title="Verde Scuderia"></button>
+        <button class="color-swatch-btn" data-color="#803816" data-name="Rame Metallico" style="background: #803816;" title="Rame Metallico"></button>
+      </div>
+      <div class="finish-toggle-row">
+        <button class="finish-btn active" data-finish="gloss" id="finish-gloss">Gloss</button>
+        <button class="finish-btn" data-finish="satin" id="finish-satin">Satin</button>
+        <button class="finish-btn" data-finish="metallic" id="finish-metallic">Metallic</button>
+      </div>
+      <button class="close-btn" id="close-popover-paint">&times;</button>
+    </div>
+  </div>
+
+  <!-- Lighting Modes Popover -->
+  <div class="popover-panel glass-panel" id="popover-lighting">
+    <div class="color-popover-content">
+      <div class="popover-title">
+        <span class="i18n-lighting">ОСВЕЩЕНИЕ:</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="env-mode-btn active" data-env="monza">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span class="i18n-env-monza">Монца Ночь</span>
+        </button>
+        <button class="env-mode-btn" data-env="sunset">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/></svg>
+          <span class="i18n-env-sunset">Ле-Ман Закат</span>
+        </button>
+        <button class="env-mode-btn" data-env="studio">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+          <span class="i18n-env-studio">Шоурум</span>
+        </button>
+        <button class="env-mode-btn" data-env="cyber">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span class="i18n-env-cyber">Неон</span>
+        </button>
+      </div>
+      <button class="close-btn" id="close-popover-lighting">&times;</button>
+    </div>
+  </div>
+
+  <!-- Main UI Layer -->
+  <div class="ui-layer">
+    
+    <!-- Top Header (Clean & Compact) -->
+    <header class="main-header interactive">
+      <div class="brand-wrapper">
+        <svg class="brand-logo-svg" viewBox="0 0 100 100">
+          <path d="M50 8 L53 38 L65 22 L62 48 L76 38 L68 56 C68 68 58 74 52 76 L52 88 L60 91 L50 94 L40 91 L48 88 L48 76 C42 74 32 68 32 56 L24 38 L38 48 L35 22 L47 38 Z" />
+        </svg>
+        <div class="brand-text">
+          <span class="brand-title">MASERATI</span>
+          <span class="brand-subtitle">
+            TIPO 151/3 • 1964
+            <span class="tricolore-badge">
+              <span class="tricolore-g"></span>
+              <span class="tricolore-w"></span>
+              <span class="tricolore-r"></span>
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Center Navigation -->
+      <nav class="nav-links glass-panel">
+        <button class="nav-btn" id="nav-btn-sound">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <span class="i18n-sound">Звук V8</span>
+        </button>
+        <button class="nav-btn" id="nav-btn-specs">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span class="i18n-specs">ТТХ и Досье</span>
+        </button>
+        <button class="nav-btn accent-btn" id="nav-btn-tour">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span class="i18n-tour">Авто-Тур</span>
+        </button>
+      </nav>
+
+      <!-- Right Header Actions -->
+      <div class="header-actions">
+        <button class="action-icon-btn" id="btn-zen-mode" title="Чистый экран — скрыть все элементы меню [U]">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button class="action-icon-btn lang-toggle" id="lang-toggle-btn" title="Переключить язык (RU/EN)">RU</button>
+        <button class="action-icon-btn" id="btn-fullscreen" title="Полноэкранный режим">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Empty Spacer so Car has 100% full view without any text blocking it -->
+    <div style="flex: 1; pointer-events: none;"></div>
+
+    <!-- Bottom Sleek Control Dock -->
+    <footer class="bottom-dock glass-panel interactive">
+      
+      <!-- Camera Angle Presets -->
+      <div class="camera-angles-row">
+        <button class="cam-angle-btn active" data-cam="hero" title="3/4 Ракурс">
+          <span class="i18n-cam-hero">3/4 Ракурс</span>
+        </button>
+        <button class="cam-angle-btn" data-cam="profile" title="Профиль Камма">
+          <span class="i18n-cam-profile">Профиль</span>
+        </button>
+        <button class="cam-angle-btn" data-cam="front" title="Вид спереди">
+          <span class="i18n-cam-front">Передок</span>
+        </button>
+        <button class="cam-angle-btn" data-cam="rear" title="Хвост Coda Tronca">
+          <span class="i18n-cam-rear">Хвост</span>
+        </button>
+        <button class="cam-angle-btn" data-cam="interior" title="Кокпит">
+          <span class="i18n-cam-interior">Кокпит</span>
+        </button>
+        <button class="cam-angle-btn" data-cam="top" title="Сверху">
+          <span class="i18n-cam-top">Сверху</span>
+        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- Quick Interactive Toggles -->
+      <div class="quick-actions-row">
+        <button class="toggle-pill-btn" id="btn-open-paint" title="Выбрать цвет кузова">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg>
+          <span class="i18n-paint-btn">Цвет</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-open-lighting" title="Режим освещения">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/></svg>
+          <span class="i18n-lighting-btn">Свет</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-toggle-doors" title="Открыть / закрыть двери [D]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><circle cx="6" cy="12" r="1"/></svg>
+          <span class="i18n-doors">Двери</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-toggle-lights" title="Фары и габариты [L]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span class="i18n-lights">Фары</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-toggle-rotate" title="Вращение 360° [A]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span class="i18n-turntable">Вращение</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-toggle-hotspots" title="Интерактивные метки [H]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          <span class="i18n-hotspots">Точки</span>
+        </button>
+        <button class="toggle-pill-btn" id="btn-snapshot" title="Сделать снимок в высоком разрешении [S]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span class="i18n-snapshot">Снимок</span>
+        </button>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- Interactive V8 Engine Sound Drawer (Closed by default) -->
+  <div class="engine-drawer glass-panel" id="engine-drawer">
+    <div class="modal-header">
+      <div>
+        <div class="modal-category i18n-engine-sound-title">СИМУЛЯТОР ЗВУКА V8</div>
+        <div class="modal-title" style="font-size: 1.15rem;">Maserati Tipo 151 V8</div>
+      </div>
+      <button class="close-btn" id="close-engine-drawer">&times;</button>
+    </div>
+
+    <!-- Analog Tachometer SVG -->
+    <div class="gauge-wrapper">
+      <svg class="tachometer-svg" viewBox="0 0 190 130">
+        <path d="M 25 105 A 70 70 0 1 1 165 105" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="10" stroke-linecap="round" />
+        <path d="M 138 48 A 70 70 0 0 1 165 105" fill="none" stroke="rgba(211, 47, 47, 0.85)" stroke-width="10" stroke-linecap="round" />
+        <line id="tacho-needle" class="tacho-needle" x1="95" y1="105" x2="40" y2="105" stroke="#c5a059" stroke-width="3" stroke-linecap="round" />
+        <circle cx="95" cy="105" r="7" fill="#fff" />
+        <circle cx="95" cy="105" r="4" fill="#0b0e14" />
+        <text x="32" y="112" fill="#888" font-size="9" text-anchor="middle">0</text>
+        <text x="30" y="70" fill="#888" font-size="9" text-anchor="middle">2</text>
+        <text x="56" y="36" fill="#888" font-size="9" text-anchor="middle">4</text>
+        <text x="95" y="24" fill="#888" font-size="9" text-anchor="middle">5</text>
+        <text x="134" y="36" fill="#888" font-size="9" text-anchor="middle">6</text>
+        <text x="160" y="70" fill="#d32f2f" font-size="9" text-anchor="middle">7</text>
+        <text x="158" y="112" fill="#d32f2f" font-size="9" text-anchor="middle">8</text>
+      </svg>
+
+      <div class="rpm-display">
+        <span class="rpm-value" id="rpm-value-display">0</span>
+        <span class="rpm-lbl">RPM &bull; ОБ/МИН</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="engine-controls-row">
+      <button class="start-engine-btn" id="btn-start-engine">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+        <span id="start-engine-label">ЗАВЕСТИ ДВИГАТЕЛЬ</span>
+      </button>
+      <button class="throttle-btn" id="btn-throttle" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+        <span>ГАЗОВАТЬ</span>
+      </button>
+    </div>
+    <div class="throttle-hint i18n-throttle-hint">
+      Зажмите кнопку "ГАЗОВАТЬ" или клавишу [Пробел]
+    </div>
+  </div>
+
+  <!-- Specifications & Heritage Drawer -->
+  <div class="specs-drawer glass-panel" id="specs-drawer">
+    <div class="drawer-close-bar">
+      <div class="brand-text">
+        <span class="brand-title" style="font-size: 1.15rem;">MASERATI TIPO 151/3</span>
+        <span class="brand-subtitle" style="font-size: 0.65rem;">ДОСЬЕ И ТЕХНИЧЕСКИЕ ХАРАКТЕРИСТИКИ</span>
+      </div>
+      <button class="close-btn" id="close-specs-drawer">&times;</button>
+    </div>
+
+    <div id="specs-content-body">
+      <!-- Injected by JS based on language -->
+    </div>
+  </div>
+
+  <!-- Main JavaScript Application -->
+  <script type="module" src="app.js?v=1.0.8"></script>
+</body>
+</html>

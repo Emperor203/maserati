@@ -1,0 +1,21 @@
+{
+  "name": "maserati-tipo-151-3-showcase",
+  "version": "1.0.0",
+  "description": "Interactive 3D WebGL Showcase of the historic Maserati Tipo 151/3 (1964)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "threejs",
+    "webgl",
+    "maserati",
+    "3d",
+    "vintage-cars"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.180.0"
+  }
+}
