@@ -28,7 +28,7 @@ const i18n = {
     camProfile: "Профиль",
     camFront: "Передок",
     camRear: "Хвост",
-    camInterior: "Кокпит",
+    camInterior: "Салон",
     camTop: "Сверху",
     doors: "Двери",
     lights: "Фары",
@@ -239,7 +239,7 @@ const CAMERA_PRESETS = {
   profile: { pos: new THREE.Vector3(4.8, 0.85, -0.2), look: new THREE.Vector3(0, 0.45, 0) },
   front: { pos: new THREE.Vector3(0.0, 0.85, 4.3), look: new THREE.Vector3(0, 0.45, 0) },
   rear: { pos: new THREE.Vector3(0.0, 0.90, -4.2), look: new THREE.Vector3(0, 0.45, 0) },
-  interior: { pos: new THREE.Vector3(-0.28, 0.76, -0.44), look: new THREE.Vector3(-0.28, 0.62, 0.15) },
+  interior: { pos: new THREE.Vector3(-1.08, 0.98, -0.22), look: new THREE.Vector3(-0.25, 0.62, -0.15) },
   top: { pos: new THREE.Vector3(0.01, 5.8, 0.05), look: new THREE.Vector3(0, 0, 0) }
 };
 
