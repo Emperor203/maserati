@@ -262,7 +262,7 @@ function init() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
 
   // 4. OrbitControls
   controls = new OrbitControls(camera, renderer.domElement);
@@ -757,17 +757,19 @@ function loadMaseratiModel() {
       }, 500);
     },
     (xhr) => {
-      if (xhr.lengthComputable) {
-        const percent = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
-        if (progressFill) progressFill.style.width = `${percent}%`;
-        if (loadPercentText) loadPercentText.textContent = `${percent}%`;
-        const mbLoaded = (xhr.loaded / (1024 * 1024)).toFixed(1);
-        const mbTotal = (xhr.total / (1024 * 1024)).toFixed(1);
-        if (loadStatusText) {
-          loadStatusText.textContent = currentLang === 'ru' 
-            ? `Загрузка: ${mbLoaded} / ${mbTotal} МБ` 
-            : `Loading: ${mbLoaded} / ${mbTotal} MB`;
-        }
+      const knownTotal = 28713408; // 27.4 MB exact model size
+      const total = (xhr.lengthComputable && xhr.total > 0) ? xhr.total : knownTotal;
+      const loaded = xhr.loaded || 0;
+      const percent = Math.min(100, Math.round((loaded / total) * 100));
+
+      if (progressFill) progressFill.style.width = `${percent}%`;
+      if (loadPercentText) loadPercentText.textContent = `${percent}%`;
+      const mbLoaded = (loaded / (1024 * 1024)).toFixed(1);
+      const mbTotal = (total / (1024 * 1024)).toFixed(1);
+      if (loadStatusText) {
+        loadStatusText.textContent = currentLang === 'ru' 
+          ? `Загрузка: ${mbLoaded} / ${mbTotal} МБ` 
+          : `Loading: ${mbLoaded} / ${mbTotal} MB`;
       }
     },
     (err) => {

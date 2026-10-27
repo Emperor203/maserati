@@ -5,6 +5,9 @@
   "installCommand": null,
   "outputDirectory": ".",
   "cleanUrls": false,
+  "rewrites": [
+    { "source": "/model/(.*)", "destination": "/public/model/$1" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
