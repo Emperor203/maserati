@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Interactive 3D WebGL Showcase of the historic Maserati Tipo 151/3 (1964)",
   "scripts": {
+    "build": "echo Static site ready",
     "start": "node local-server.js"
   },
   "keywords": [
