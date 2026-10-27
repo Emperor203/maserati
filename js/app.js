@@ -239,7 +239,7 @@ const CAMERA_PRESETS = {
   profile: { pos: new THREE.Vector3(4.8, 0.85, -0.2), look: new THREE.Vector3(0, 0.45, 0) },
   front: { pos: new THREE.Vector3(0.0, 0.85, 4.3), look: new THREE.Vector3(0, 0.45, 0) },
   rear: { pos: new THREE.Vector3(0.0, 0.90, -4.2), look: new THREE.Vector3(0, 0.45, 0) },
-  interior: { pos: new THREE.Vector3(0.35, 0.85, 0.08), look: new THREE.Vector3(0.12, 0.72, 0.65) },
+  interior: { pos: new THREE.Vector3(-0.28, 0.76, -0.44), look: new THREE.Vector3(-0.28, 0.62, 0.15) },
   top: { pos: new THREE.Vector3(0.01, 5.8, 0.05), look: new THREE.Vector3(0, 0, 0) }
 };
 
@@ -265,7 +265,7 @@ function init() {
   scene.fog = null;
 
   // 2. Camera
-  camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.05, 100);
   camera.position.copy(camTargetPos);
 
   // 3. Renderer
@@ -294,7 +294,7 @@ function init() {
   controls.enableZoom = true;
   controls.enableRotate = true;
   controls.enablePan = true;
-  controls.minDistance = 1.8;
+  controls.minDistance = 0.05;
   controls.maxDistance = 14.0;
   controls.maxPolarAngle = Math.PI / 2 - 0.02; // Never clip beneath studio floor
   controls.target.copy(camTargetLook);
@@ -401,6 +401,11 @@ function setupLighting() {
   scene.add(tailGlowR);
 
   taillightGlow.push(tailGlowL, tailGlowR);
+
+  // Warm interior cockpit illumination for gauges, seats, and wood wheel
+  const cabinLight = new THREE.PointLight(0xffedd0, 0.85, 2.5);
+  cabinLight.position.set(-0.15, 0.72, -0.15);
+  scene.add(cabinLight);
 }
 
 let shadowPlaneMat;
@@ -1055,13 +1060,21 @@ function setCameraPreset(presetName) {
   camTargetLook.copy(preset.look);
   isTransitioningCamera = true;
 
+  if (presetName === 'interior') {
+    controls.minDistance = 0.02;
+    controls.maxPolarAngle = Math.PI - 0.05;
+  } else {
+    controls.minDistance = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+  }
+
   document.querySelectorAll('.cam-angle-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.cam === presetName);
   });
 }
 
 // --- CINEMATIC AUTO TOUR ---
-const tourSequence = ['hero', 'front', 'cockpit', 'profile', 'rear', 'top'];
+const tourSequence = ['hero', 'front', 'interior', 'profile', 'rear', 'top'];
 let tourTimer = null;
 function toggleCinematicTour() {
   state.isTouring = !state.isTouring;
