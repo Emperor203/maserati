@@ -35,10 +35,14 @@ const i18n = {
     turntable: "Вращение",
     hotspots: "Точки",
     snapshot: "Снимок",
-    envMonza: "Монца Ночь",
+    envMonza: "Черный Шоурум",
     envSunset: "Ле-Ман Закат",
-    envStudio: "Шоурум",
+    envStudio: "Белый Шоурум",
     envCyber: "Неон Трек",
+    bgWhite: "Фон: Белый",
+    bgDark: "Фон: Черный",
+    toastBgWhite: "Фон изменен: Белый студийный",
+    toastBgDark: "Фон изменен: Черный студийный",
     engineTitle: "СИМУЛЯТОР ЗВУКА V8",
     startEngine: "ЗАВЕСТИ ДВИГАТЕЛЬ",
     stopEngine: "ЗАГЛУШИТЬ ДВИГАТЕЛЬ",
@@ -113,10 +117,14 @@ const i18n = {
     turntable: "Rotate",
     hotspots: "Hotspots",
     snapshot: "Snapshot",
-    envMonza: "Monza Night",
+    envMonza: "Dark Showroom",
     envSunset: "Le Mans Sunset",
-    envStudio: "Studio",
+    envStudio: "White Showroom",
     envCyber: "Cyber Neon",
+    bgWhite: "BG: White",
+    bgDark: "BG: Dark",
+    toastBgWhite: "Background: White Studio",
+    toastBgDark: "Background: Dark Studio",
     engineTitle: "V8 ENGINE SIMULATOR",
     startEngine: "START ENGINE",
     stopEngine: "STOP ENGINE",
@@ -178,7 +186,8 @@ const state = {
   showHotspots: false, // Default: OFF for clean view
   currentColor: '#ab1313',
   currentFinish: 'gloss',
-  currentEnv: 'studio',
+  currentEnv: 'white-studio',
+  currentBgTheme: 'white', // 'white' or 'black'
   cameraPreset: 'hero',
   engineRunning: false,
   throttlePressed: false,
@@ -290,13 +299,11 @@ function init() {
     }
   });
 
-  // 5. Environment & PMREM Generator
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  pmremGenerator.compileEquirectangularShader();
-  const roomEnv = new RoomEnvironment(renderer);
-  scene.environment = pmremGenerator.fromScene(roomEnv).texture;
+  // 5. Automotive Softbox Studio Environment (Creates long glossy light streaks)
+  const studioEnvTex = createAutomotiveStudioEnvironment(renderer);
+  scene.environment = studioEnvTex;
   if ('environmentIntensity' in scene) {
-    scene.environmentIntensity = 1.4;
+    scene.environmentIntensity = 1.6;
   }
 
   // 6. Studio Lighting
@@ -319,6 +326,84 @@ function init() {
 
   // 11. Handle Window Resize
   window.addEventListener('resize', onWindowResize);
+}
+
+// --- CREATE AUTOMOTIVE STUDIO SOFTBOX ENVIRONMENT ---
+function createAutomotiveStudioEnvironment(renderer) {
+  const envScene = new THREE.Scene();
+  // Neutral dark studio background so emissive softbox light banks produce sharp specular contrast
+  envScene.background = new THREE.Color(0x111317);
+
+  // Soft gradient studio floor in reflection scene
+  const envFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.MeshBasicMaterial({ color: 0x48505e })
+  );
+  envFloor.rotation.x = -Math.PI / 2;
+  envFloor.position.y = -0.5;
+  envScene.add(envFloor);
+
+  // High-luminance softbox materials (toneMapped: false for true HDR reflections into PMREM)
+  const mainSoftboxMat = new THREE.MeshBasicMaterial({ 
+    color: new THREE.Color(12.0, 12.0, 12.0),
+    toneMapped: false 
+  });
+  const sideSoftboxMat = new THREE.MeshBasicMaterial({ 
+    color: new THREE.Color(7.5, 7.5, 7.5),
+    toneMapped: false 
+  });
+  const accentSoftboxMat = new THREE.MeshBasicMaterial({ 
+    color: new THREE.Color(5.0, 5.0, 5.0),
+    toneMapped: false 
+  });
+
+  // 1. Long Central Overhead Softbox Strip (Down hood, roof, rear deck)
+  const topStrip = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 24), mainSoftboxMat);
+  topStrip.rotation.x = Math.PI / 2;
+  topStrip.position.set(0, 6.0, 0);
+  envScene.add(topStrip);
+
+  // 2. Twin Parallel Shoulder Strips (Draws beautiful dual shoulder highlights)
+  const topStripLeft = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 22), sideSoftboxMat);
+  topStripLeft.rotation.x = Math.PI / 2;
+  topStripLeft.position.set(-2.2, 5.4, 0);
+  envScene.add(topStripLeft);
+
+  const topStripRight = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 22), sideSoftboxMat);
+  topStripRight.rotation.x = Math.PI / 2;
+  topStripRight.position.set(2.2, 5.4, 0);
+  envScene.add(topStripRight);
+
+  // 3. Front 45-degree Hood & Windshield Sweeper
+  const frontBox = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 4.0), mainSoftboxMat);
+  frontBox.position.set(0, 3.8, 6.5);
+  frontBox.rotation.x = Math.PI / 3.5;
+  frontBox.rotation.y = Math.PI;
+  envScene.add(frontBox);
+
+  // 4. Rear Coda Tronca Softbox
+  const rearBox = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 3.5), accentSoftboxMat);
+  rearBox.position.set(0, 3.5, -6.5);
+  rearBox.rotation.x = -Math.PI / 3.5;
+  envScene.add(rearBox);
+
+  // 5. Left & Right Flank Softbox Panels (Horizontal reflection along waistline)
+  const leftFlank = new THREE.Mesh(new THREE.PlaneGeometry(20, 2.8), sideSoftboxMat);
+  leftFlank.position.set(-5.5, 2.2, 0);
+  leftFlank.rotation.y = Math.PI / 2;
+  envScene.add(leftFlank);
+
+  const rightFlank = new THREE.Mesh(new THREE.PlaneGeometry(20, 2.8), sideSoftboxMat);
+  rightFlank.position.set(5.5, 2.2, 0);
+  rightFlank.rotation.y = -Math.PI / 2;
+  envScene.add(rightFlank);
+
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+  const envTex = pmremGenerator.fromScene(envScene).texture;
+  pmremGenerator.dispose();
+
+  return envTex;
 }
 
 // --- SETUP LIGHTING RIGS ---
@@ -607,6 +692,7 @@ function loadMaseratiModel() {
       carModel.position.z = -center.z;
 
       // 2. Traverse scene and enhance PBR materials
+      let sharedBodyMat = null;
       carModel.traverse((node) => {
         if (node.isMesh) {
           node.castShadow = true;
@@ -619,40 +705,34 @@ function loadMaseratiModel() {
 
             // Body paint materials
             if (matName.includes('body') || nodeName.includes('body') || nodeName.includes('bonnet') || nodeName.includes('booth')) {
-              if (!bodyMaterials.includes(mat)) {
-                bodyMaterials.push(mat);
-                // Enhance paint clearcoat and gloss with metallic finish by default
-                if (state.currentFinish === 'metallic') {
-                  mat.roughness = 0.28;
-                  mat.metalness = 0.78;
-                  mat.clearcoat = 0.88;
-                  mat.clearcoatRoughness = 0.15;
-                } else if (state.currentFinish === 'satin') {
-                  mat.roughness = 0.52;
-                  mat.metalness = 0.25;
-                  mat.clearcoat = 0.2;
-                  mat.clearcoatRoughness = 0.4;
-                } else {
-                  mat.roughness = 0.16;
-                  mat.metalness = 0.08;
-                  mat.clearcoat = 1.0;
-                  mat.clearcoatRoughness = 0.06;
-                }
-
-                if (state.currentColor === '#ab1313') {
-                  mat.color.set(0xffffff); // Authentic Rosso Corsa
-                } else {
-                  mat.color.set(state.currentColor);
-                }
+              if (!sharedBodyMat) {
+                // Convert to authentic 2-layer automotive lacquer (MeshPhysicalMaterial with mirror clearcoat)
+                sharedBodyMat = new THREE.MeshPhysicalMaterial({
+                  map: mat.map,
+                  normalMap: mat.normalMap,
+                  aoMap: mat.aoMap,
+                  aoMapIntensity: 1.0,
+                  color: new THREE.Color(0xffffff), // Authentic Rosso Corsa
+                  roughness: 0.04,
+                  metalness: 0.03,
+                  clearcoat: 1.0,
+                  clearcoatRoughness: 0.02,
+                  ior: 1.52,
+                  reflectivity: 0.95,
+                  envMapIntensity: 2.4,
+                });
+                bodyMaterials.push(sharedBodyMat);
               }
+              node.material = sharedBodyMat;
             }
 
             // Chrome & Polished Metal
             if (matName.includes('chrome') || matName.includes('old_chrome') || matName.includes('metal')) {
               if (!chromeMaterials.includes(mat)) {
                 chromeMaterials.push(mat);
-                mat.metalness = 0.95;
-                mat.roughness = 0.08;
+                mat.metalness = 0.98;
+                mat.roughness = 0.02;
+                mat.envMapIntensity = 2.6;
               }
             }
 
@@ -661,9 +741,10 @@ function loadMaseratiModel() {
               if (!glassMaterials.includes(mat)) {
                 glassMaterials.push(mat);
                 mat.transparent = true;
-                mat.opacity = 0.38;
-                mat.roughness = 0.05;
-                mat.metalness = 0.1;
+                mat.opacity = 0.35;
+                mat.roughness = 0.02;
+                mat.metalness = 0.05;
+                mat.envMapIntensity = 2.0;
                 mat.depthWrite = false;
               }
             }
@@ -671,8 +752,9 @@ function loadMaseratiModel() {
             // Headlight Glass
             if (matName.includes('headlight_glass')) {
               mat.transparent = true;
-              mat.opacity = 0.65;
-              mat.roughness = 0.1;
+              mat.opacity = 0.60;
+              mat.roughness = 0.05;
+              mat.metalness = 0.1;
               mat.depthWrite = false;
             }
 
@@ -687,8 +769,9 @@ function loadMaseratiModel() {
             if (matName.includes('reflector')) {
               if (!reflectorMaterials.includes(mat)) {
                 reflectorMaterials.push(mat);
-                mat.metalness = 0.95;
-                mat.roughness = 0.12;
+                mat.metalness = 0.98;
+                mat.roughness = 0.05;
+                mat.envMapIntensity = 2.4;
               }
             }
 
@@ -713,14 +796,15 @@ function loadMaseratiModel() {
 
             // Rims & Spoke wire wheels
             if (matName.includes('rim')) {
-              mat.metalness = 0.85;
-              mat.roughness = 0.22;
+              mat.metalness = 0.96;
+              mat.roughness = 0.04;
+              mat.envMapIntensity = 2.4;
             }
 
             // Rubber tires
             if (matName.includes('tyre') || matName.includes('tire')) {
-              mat.roughness = 0.88;
-              mat.metalness = 0.04;
+              mat.roughness = 0.85;
+              mat.metalness = 0.02;
             }
           }
         }
@@ -867,26 +951,106 @@ function setPaintFinish(finish) {
   state.currentFinish = finish;
   bodyMaterials.forEach((mat) => {
     if (finish === 'gloss') {
-      mat.roughness = 0.22;
-      mat.metalness = 0.15;
-      mat.clearcoat = 0.95;
-      mat.clearcoatRoughness = 0.1;
+      mat.roughness = 0.04;
+      mat.metalness = 0.03;
+      mat.clearcoat = 1.0;
+      mat.clearcoatRoughness = 0.02;
+      mat.ior = 1.52;
     } else if (finish === 'satin') {
-      mat.roughness = 0.52;
-      mat.metalness = 0.25;
-      mat.clearcoat = 0.2;
-      mat.clearcoatRoughness = 0.4;
+      mat.roughness = 0.45;
+      mat.metalness = 0.15;
+      mat.clearcoat = 0.25;
+      mat.clearcoatRoughness = 0.30;
+      mat.ior = 1.45;
     } else if (finish === 'metallic') {
-      mat.roughness = 0.28;
-      mat.metalness = 0.78;
-      mat.clearcoat = 0.88;
-      mat.clearcoatRoughness = 0.15;
+      mat.roughness = 0.07;
+      mat.metalness = 0.65;
+      mat.clearcoat = 1.0;
+      mat.clearcoatRoughness = 0.03;
+      mat.ior = 1.52;
     }
+    mat.needsUpdate = true;
   });
 
   document.querySelectorAll('.finish-btn').forEach((b) => {
     b.classList.toggle('active', b.dataset.finish === finish);
   });
+}
+
+// --- BACKGROUND & THEME TOGGLE (WHITE / BLACK STUDIO) ---
+function toggleBgTheme() {
+  const newTheme = state.currentBgTheme === 'white' ? 'black' : 'white';
+  setBgTheme(newTheme);
+}
+
+function setBgTheme(theme) {
+  state.currentBgTheme = theme;
+  const isWhite = (theme === 'white');
+
+  if (isWhite) {
+    scene.background.set(0xf6f7f9);
+    if (groundMat) {
+      groundMat.color.set(0xf6f7f9);
+      groundMat.roughness = 0.38;
+      groundMat.metalness = 0.04;
+    }
+    if (contactShadowMesh) {
+      contactShadowMesh.material.opacity = 0.85;
+    }
+    ambientLight.intensity = 1.25;
+    dirLight.intensity = 2.8;
+    dirLight.color.set(0xffffff);
+    document.body.classList.remove('dark-studio');
+  } else {
+    scene.background.set(0x0a0c10);
+    if (groundMat) {
+      groundMat.color.set(0x0a0c10);
+      groundMat.roughness = 0.20;
+      groundMat.metalness = 0.15;
+    }
+    if (contactShadowMesh) {
+      contactShadowMesh.material.opacity = 0.95;
+    }
+    ambientLight.intensity = 0.85;
+    dirLight.intensity = 2.6;
+    dirLight.color.set(0xfffbf5);
+    document.body.classList.add('dark-studio');
+  }
+
+  // Update bottom pill button label and active state
+  const bgLabel = document.getElementById('label-bg-toggle');
+  if (bgLabel) {
+    bgLabel.textContent = isWhite
+      ? (currentLang === 'ru' ? 'Фон: Белый' : 'BG: White')
+      : (currentLang === 'ru' ? 'Фон: Черный' : 'BG: Dark');
+  }
+
+  const btnToggleBg = document.getElementById('btn-toggle-bg');
+  if (btnToggleBg) {
+    btnToggleBg.classList.toggle('active', !isWhite);
+  }
+
+  // Update header action icon button
+  const btnThemeHeader = document.getElementById('btn-theme-toggle');
+  if (btnThemeHeader) {
+    btnThemeHeader.classList.toggle('active', !isWhite);
+    btnThemeHeader.title = isWhite
+      ? (currentLang === 'ru' ? 'Переключить на черный фон [B]' : 'Switch to Dark Background [B]')
+      : (currentLang === 'ru' ? 'Переключить на белый фон [B]' : 'Switch to White Background [B]');
+  }
+
+  // Sync env mode buttons in lighting popover
+  document.querySelectorAll('.env-mode-btn').forEach((b) => {
+    if (b.dataset.env === 'white-studio' || b.dataset.env === 'studio') {
+      b.classList.toggle('active', isWhite);
+    } else if (b.dataset.env === 'dark-studio' || b.dataset.env === 'monza') {
+      b.classList.toggle('active', !isWhite);
+    } else {
+      b.classList.remove('active');
+    }
+  });
+
+  showToast(isWhite ? i18n[currentLang].toastBgWhite : i18n[currentLang].toastBgDark);
 }
 
 // --- ENVIRONMENT LIGHTING MODES ---
@@ -896,38 +1060,42 @@ function setEnvironmentMode(mode) {
     b.classList.toggle('active', b.dataset.env === mode);
   });
 
-  if (mode === 'studio') {
-    scene.background.set(0xf6f7f9);
-    if (groundMat) groundMat.color.set(0xf6f7f9);
-    dirLight.color.set(0xffffff);
-    dirLight.intensity = 2.8;
-    rimLightL.color.set(0xffffff);
-    rimLightR.color.set(0xffffff);
-    ambientLight.intensity = 1.25;
-  } else if (mode === 'monza') {
-    scene.background.set(0x06070a);
-    if (groundMat) groundMat.color.set(0x06070a);
-    dirLight.color.set(0xfff8ee);
-    dirLight.intensity = 2.6;
-    rimLightL.color.set(0x90b8f0);
-    rimLightR.color.set(0xffdfb8);
-    ambientLight.intensity = 0.55;
+  if (mode === 'white-studio' || mode === 'studio') {
+    setBgTheme('white');
+  } else if (mode === 'dark-studio' || mode === 'monza') {
+    setBgTheme('black');
   } else if (mode === 'sunset') {
+    state.currentBgTheme = 'sunset';
     scene.background.set(0x1a0f0d);
-    if (groundMat) groundMat.color.set(0x1a0f0d);
+    if (groundMat) {
+      groundMat.color.set(0x1a0f0d);
+      groundMat.roughness = 0.30;
+      groundMat.metalness = 0.08;
+    }
+    if (contactShadowMesh) contactShadowMesh.material.opacity = 0.90;
     dirLight.color.set(0xff9944);
     dirLight.intensity = 2.8;
     rimLightL.color.set(0xaa4466);
     rimLightR.color.set(0xffcc66);
     ambientLight.intensity = 0.65;
+    document.body.classList.add('dark-studio');
+    showToast(i18n[currentLang].envSunset);
   } else if (mode === 'cyber') {
+    state.currentBgTheme = 'cyber';
     scene.background.set(0x05060f);
-    if (groundMat) groundMat.color.set(0x05060f);
+    if (groundMat) {
+      groundMat.color.set(0x05060f);
+      groundMat.roughness = 0.15;
+      groundMat.metalness = 0.20;
+    }
+    if (contactShadowMesh) contactShadowMesh.material.opacity = 0.95;
     dirLight.color.set(0x00f0ff);
     dirLight.intensity = 2.4;
     rimLightL.color.set(0xff0066);
     rimLightR.color.set(0x00e5ff);
     ambientLight.intensity = 0.45;
+    document.body.classList.add('dark-studio');
+    showToast(i18n[currentLang].envCyber);
   }
 }
 
@@ -1278,6 +1446,20 @@ function setLanguage(lang) {
   document.querySelector('.i18n-env-studio').textContent = d.envStudio;
   document.querySelector('.i18n-env-cyber').textContent = d.envCyber;
 
+  const bgLabel = document.getElementById('label-bg-toggle');
+  if (bgLabel) {
+    bgLabel.textContent = (state.currentBgTheme === 'white')
+      ? (lang === 'ru' ? 'Фон: Белый' : 'BG: White')
+      : (lang === 'ru' ? 'Фон: Черный' : 'BG: Dark');
+  }
+
+  const btnThemeHeader = document.getElementById('btn-theme-toggle');
+  if (btnThemeHeader) {
+    btnThemeHeader.title = (state.currentBgTheme === 'white')
+      ? (lang === 'ru' ? 'Переключить на черный фон [B]' : 'Switch to Dark Background [B]')
+      : (lang === 'ru' ? 'Переключить на белый фон [B]' : 'Switch to White Background [B]');
+  }
+
   document.querySelector('.i18n-engine-sound-title').textContent = d.engineTitle;
   document.getElementById('start-engine-label').textContent = state.engineRunning ? d.stopEngine : d.startEngine;
   document.querySelector('.i18n-throttle-hint').textContent = d.throttleHint;
@@ -1413,6 +1595,17 @@ function setupUIEventListeners() {
       setCameraPreset(btn.dataset.cam);
     });
   });
+
+  // Toggle Background Theme (White / Black Studio)
+  const btnToggleBg = document.getElementById('btn-toggle-bg');
+  if (btnToggleBg) {
+    btnToggleBg.addEventListener('click', toggleBgTheme);
+  }
+
+  const btnThemeToggle = document.getElementById('btn-theme-toggle');
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', toggleBgTheme);
+  }
 
   // Toggle Doors
   const btnDoors = document.getElementById('btn-toggle-doors');
@@ -1651,6 +1844,10 @@ function setupUIEventListeners() {
     // L: toggle lights
     if (e.key === 'l' || e.key === 'L' || e.key === 'д' || e.key === 'Д') {
       setLights(!state.lightsOn);
+    }
+    // B: toggle background theme (White / Black Studio)
+    if (e.key === 'b' || e.key === 'B' || e.key === 'и' || e.key === 'И') {
+      toggleBgTheme();
     }
     // D: toggle doors
     if (e.key === 'd' || e.key === 'D' || e.key === 'в' || e.key === 'В') {

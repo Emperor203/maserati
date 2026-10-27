@@ -64,6 +64,11 @@ html, body {
   height: 100vh;
   z-index: 1;
   background: #f6f7f9;
+  transition: background 0.4s ease;
+}
+
+body.dark-studio #webgl-container {
+  background: #0a0c10;
 }
 
 #webgl-canvas {
